@@ -1,0 +1,38 @@
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+using TriviUpBackend.Data;
+
+namespace TriviUpBackend.Models.Auth;
+
+[Table("users")]
+[Index(nameof(Username), IsUnique = true)]
+[Index(nameof(Email), IsUnique = true)]
+public class User : ITimestamped
+{
+    [Key]
+    public long Id { get; set; }
+   
+    [Required]
+    [MaxLength(50)]
+    public string Username { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(100)]
+    [EmailAddress] // Validación extra para el formato
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    public string PasswordHash { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(20)]
+    public string Role { get; set; } = UserRoles.USER;
+
+    public bool IsDeleted { get; set; } = false;
+
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; init; } = DateTime.UtcNow;
+    
+}
