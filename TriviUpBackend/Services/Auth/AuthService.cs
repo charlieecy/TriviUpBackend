@@ -56,7 +56,7 @@ public class AuthService(
         {
             logger.LogWarning("SignIn fallido: Usuario no encontrado - {Username}", sanitizedUsername);
             return Result.Failure<AuthResponseDto, AuthError>(
-                new UnauthorizedError("Credenciales inválidas")
+                new AuthUnauthorizedError("Credenciales inválidas")
             );
         }
 
@@ -65,7 +65,7 @@ public class AuthService(
         {
             logger.LogWarning("SignIn fallido: Password inválido - {Username}", sanitizedUsername);
             return Result.Failure<AuthResponseDto, AuthError>(
-                new UnauthorizedError("Credenciales inválidas")
+                new AuthUnauthorizedError("Credenciales inválidas")
             );
         }
 
@@ -85,13 +85,13 @@ public class AuthService(
         var existingUser = await usernameCheckTask;
         if (existingUser is not null)
         {
-            return UnitResult.Failure<AuthError>(new ConflictError("username ya en uso:"+existingUser.Username));
+            return UnitResult.Failure<AuthError>(new AuthConflictError("username ya en uso:"+existingUser.Username));
         }
 
         var existingEmail = await emailCheckTask;
         if (existingEmail is not null)
         {
-            return UnitResult.Failure<AuthError>(new ConflictError("email ya en uso"+existingEmail.Email));
+            return UnitResult.Failure<AuthError>(new AuthConflictError("email ya en uso"+existingEmail.Email));
         }
 
         return UnitResult.Success<AuthError>();

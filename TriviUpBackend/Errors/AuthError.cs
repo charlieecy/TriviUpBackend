@@ -6,8 +6,8 @@ public record AuthError(
     public string Error { get; set; } = Error;
 }
 
-public record UnauthorizedError(string Error): AuthError(Error);
+public record AuthUnauthorizedError(string Error): AuthError(Error);
 
-public record ConflictError(string Error):AuthError(Error);
+public record AuthConflictError(string Error):AuthError(Error);
 
-public record ValidationError(string Error): AuthError(Error);
+public record AuthValidationError(string Error): AuthError(Error);

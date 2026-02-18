@@ -6,13 +6,7 @@ namespace TriviUpBackend.Services.Auth;
 
 public interface IAuthService
 {
-    public interface IAuthService
-    {
-    
-        Task<Result<AuthResponseDto, AuthError>> SignUpAsync(RegisterDto dto);
-    
-
-  
-        Task<Result<AuthResponseDto, AuthError>> SignInAsync(LoginDto dto);
-    }
+    public Task<Result<AuthResponseDto, AuthError>>  SignUpAsync(RegisterDto dto);
+        
+    public Task<Result<AuthResponseDto, AuthError>> SignInAsync(LoginDto dto);
 }

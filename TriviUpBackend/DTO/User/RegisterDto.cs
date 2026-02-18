@@ -16,7 +16,7 @@ public record RegisterDto
     public string Email { get; init; } = string.Empty;
     
     [Required(ErrorMessage = "La contraseña es obligatoria")]
-    [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+    [MinLength(4, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
     [MaxLength(100, ErrorMessage = "La contraseña no puede exceder 100 caracteres")]
     public string Password { get; init; } = string.Empty;
 }

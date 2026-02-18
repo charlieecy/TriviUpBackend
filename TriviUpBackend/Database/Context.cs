@@ -30,10 +30,10 @@ public class Context(DbContextOptions options) : DbContext(options)
             Id = 1,
             Username = "admin",
             Email = "admin@funkoapi.com",
-            PasswordHash = "$2a$12$n1uTaycq1Cq5uwwHCMSqa.dUDZZ3rU4B6.vZPDov4QJiCBgGvCcMy",
+            PasswordHash = "$2a$12$1/N3ZlYzumBVj/ER32yoWOETCZixGGIVFKR9aQBF2qwvjim0fj/QW",
             Role = UserRoles.ADMIN,
             IsDeleted = false,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,    
             UpdatedAt = DateTime.UtcNow
         };
 
@@ -42,7 +42,7 @@ public class Context(DbContextOptions options) : DbContext(options)
             Id = 2,
             Username = "user",
             Email = "user@funkoapi.com",
-            PasswordHash = "$2a$12$Vp5ZpZik9vTjMMLRblbDKu93ct9qZEK/3zMKdOrE7JBdFBBJEogGy",
+            PasswordHash = "$2a$12$FL6hv5d1QI1wAYn61xdbGeqPH5q8tlPhTdElOH1Z0vi3wt2YvGWgi",
             Role = UserRoles.USER,
             IsDeleted = false,
             CreatedAt = DateTime.UtcNow,
