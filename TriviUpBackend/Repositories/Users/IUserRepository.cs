@@ -9,6 +9,8 @@ public interface IUserRepository
     Task<User?> FindByUsernameAsync(string username);
 
     Task<User?> FindByEmailAsync(string email);
+
+    Task<User?> FindByGoogleIdAsync(string googleId);
     
     Task<IEnumerable<User>> FindAllAsync();
     

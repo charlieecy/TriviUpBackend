@@ -1,0 +1,129 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+    branches:
+      - master
+      - dev
+
+jobs:
+  build:
+    name: Build Project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          
+      - name: Restore & Build
+        run: |
+          if [ -d "TriviUpBackend" ]; then
+            dotnet restore TriviUpBackend/TriviUpBackend.csproj
+            dotnet build TriviUpBackend/TriviUpBackend.csproj --configuration Release
+          else
+            echo "Directorio TriviUpBackend no encontrado. Verifica la ruta."
+          fi
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          
+      - name: Run Unit Tests
+        run: |
+          mkdir -p UnitTestResults
+          # Asegúrate de cambiar "TriviUpBackend.Tests/TriviUpBackend.Tests.csproj" por la ruta real de tu proyecto de tests
+          TEST_PROJECT=$(find . -name "*Test*.csproj" | head -n 1)
+          if [ -n "$TEST_PROJECT" ]; then
+            echo "Ejecutando tests unitarios en: $TEST_PROJECT"
+            dotnet test $TEST_PROJECT \
+              --configuration Release \
+              --logger "trx;LogFileName=$(pwd)/UnitTestResults/UnitTestResults.trx"
+          else
+            echo "No se encontró ningún proyecto de tests unitarios (*Test*.csproj). Puedes actualizar la ruta estáticamente en ci.yml."
+          fi
+
+  bruno-tests:
+    name: Bruno API Tests
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      Development: "true"
+      ASPNETCORE_ENVIRONMENT: Development
+      # Variables de entorno adicionales si las necesitas:
+      # JWT_KEY: ${{ secrets.JWT_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore & Build backend
+        run: |
+          if [ -d "TriviUpBackend" ]; then
+            dotnet restore TriviUpBackend/TriviUpBackend.csproj
+            dotnet build TriviUpBackend/TriviUpBackend.csproj --configuration Release
+          fi
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Bruno CLI
+        run: npm install -g @usebruno/cli
+
+      - name: Start backend server
+        run: |
+          echo "Starting server..."
+          # El puerto por defecto en appsettings o Program.cs podría variar. Ajusta si tu app corre en otro puerto localmente.
+          dotnet run --project TriviUpBackend/TriviUpBackend.csproj \
+            --configuration Release \
+            --no-build \
+            --urls "http://localhost:5041" &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for server
+        run: |
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5041/health || echo "000")
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "404" ]; then
+              echo "Server ready after $i seconds ($STATUS)"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run Bruno Tests
+        run: |
+          # Busca la carpeta de los tests de bruno dinámicamente o ajusta la ruta "TriviUpBrunoTest"
+          BRUNO_DIR=$(find . -maxdepth 2 -type d -iname "*bruno*" | head -n 1)
+          if [ -n "$BRUNO_DIR" ]; then
+            cd $BRUNO_DIR
+            bru run --env Local --format json
+          else
+            echo "No se encontró directorio de tests de bruno (p.ej.: TriviUpBrunoTest). Modifica en ci.yml la ruta al directorio de bruno."
+          fi
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then
+            kill $SERVER_PID 2>/dev/null || true
+          fi

@@ -13,10 +13,9 @@ public class Context(DbContextOptions options) : DbContext(options)
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<User>(entity =>
         {
-            //Filtro para ignorar los usuarios eliminados (soft delete)
             entity.HasQueryFilter(u => !u.IsDeleted);
-            //Por ser un método de extensión personalizado
             entity.ConfigureTimestamps();
+            entity.HasIndex(u => u.GoogleId).IsUnique();
         });
         
         SeedData(modelBuilder); // Llamamos al metodo para poblar la BD

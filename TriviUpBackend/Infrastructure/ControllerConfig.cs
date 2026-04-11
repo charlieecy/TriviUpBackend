@@ -1,11 +1,16 @@
-﻿namespace TriviUpBackend.Infrastructure;
+﻿using System.Text.Json;
+
+namespace TriviUpBackend.Infrastructure;
 
 public static class ControllerConfig
 {
     public static IServiceCollection AddControllersConfiguration(this IServiceCollection services)
     {
-        // Registramos nuestros controladores para que la API pueda gestionar las rutas
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            });
         
         services.AddControllers(options =>
         {

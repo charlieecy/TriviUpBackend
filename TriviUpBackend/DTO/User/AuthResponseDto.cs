@@ -1,6 +1,8 @@
-﻿namespace TriviUpBackend.DTO.User;
+﻿using System.Text.Json.Serialization;
+
+namespace TriviUpBackend.DTO.User;
 
 public record AuthResponseDto(
-    string Token,
-    UserDto User
+    [property: JsonPropertyName("token")] string Token,
+    [property: JsonPropertyName("user")] UserDto User
 );

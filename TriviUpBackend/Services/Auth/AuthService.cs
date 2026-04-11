@@ -74,24 +74,58 @@ public class AuthService(
 
         return Result.Success<AuthResponseDto, AuthError>(authResponse);
     }
+
+    public async Task<Result<AuthResponseDto, AuthError>> GoogleSignInAsync(string googleId, string email, string username)
+    {
+        logger.LogInformation("Google sign-in attempt for email: {Email}", email);
+
+        var existingByGoogleId = await userRepository.FindByGoogleIdAsync(googleId);
+        if (existingByGoogleId is not null)
+        {
+            var response = GenerateAuthResponse(existingByGoogleId);
+            logger.LogInformation("Google user signed in: {Email}", email);
+            return Result.Success<AuthResponseDto, AuthError>(response);
+        }
+
+        var existingByEmail = await userRepository.FindByEmailAsync(email);
+        if (existingByEmail is not null)
+        {
+            existingByEmail.GoogleId = googleId;
+            await userRepository.UpdateAsync(existingByEmail);
+            var response = GenerateAuthResponse(existingByEmail);
+            logger.LogInformation("Linked existing user to Google: {Email}", email);
+            return Result.Success<AuthResponseDto, AuthError>(response);
+        }
+
+        var user = new User
+        {
+            Username = username,
+            Email = email,
+            GoogleId = googleId,
+            PasswordHash = string.Empty,
+            Role = UserRoles.USER,
+            IsDeleted = false
+        };
+
+        var savedUser = await userRepository.SaveAsync(user);
+        var authResponse = GenerateAuthResponse(savedUser);
+        logger.LogInformation("New user created via Google sign-in: {Email}", email);
+
+        return Result.Success<AuthResponseDto, AuthError>(authResponse);
+    }
     
     private async Task<UnitResult<AuthError>> CheckDuplicatesAsync(RegisterDto dto)
     {
-        var usernameCheckTask = userRepository.FindByUsernameAsync(dto.Username!);
-        var emailCheckTask = userRepository.FindByEmailAsync(dto.Email!);
-
-        await Task.WhenAll(usernameCheckTask, emailCheckTask);
-
-        var existingUser = await usernameCheckTask;
+        var existingUser = await userRepository.FindByUsernameAsync(dto.Username!);
         if (existingUser is not null)
         {
-            return UnitResult.Failure<AuthError>(new AuthConflictError("username ya en uso:"+existingUser.Username));
+            return UnitResult.Failure<AuthError>(new AuthConflictError("username ya en uso: " + existingUser.Username));
         }
 
-        var existingEmail = await emailCheckTask;
+        var existingEmail = await userRepository.FindByEmailAsync(dto.Email!);
         if (existingEmail is not null)
         {
-            return UnitResult.Failure<AuthError>(new AuthConflictError("email ya en uso"+existingEmail.Email));
+            return UnitResult.Failure<AuthError>(new AuthConflictError("email ya en uso: " + existingEmail.Email));
         }
 
         return UnitResult.Success<AuthError>();

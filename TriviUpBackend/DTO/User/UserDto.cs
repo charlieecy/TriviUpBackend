@@ -1,13 +1,11 @@
-﻿namespace TriviUpBackend.DTO.User;
+﻿using System.Text.Json.Serialization;
+
+namespace TriviUpBackend.DTO.User;
 
 public record UserDto(
-    long Id,
-    
-    string Username,
-    
-    string Email,
-    
-    string Role,
-    
-    DateTime CreatedAt
+    [property: JsonPropertyName("id")] long Id,
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("createdAt")] DateTime CreatedAt
 );

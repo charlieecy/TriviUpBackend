@@ -8,6 +8,7 @@ namespace TriviUpBackend.Models.Auth;
 [Table("users")]
 [Index(nameof(Username), IsUnique = true)]
 [Index(nameof(Email), IsUnique = true)]
+[Index(nameof(GoogleId), IsUnique = true)]
 public class User : ITimestamped
 {
     [Key]
@@ -34,5 +35,7 @@ public class User : ITimestamped
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; init; } = DateTime.UtcNow;
-    
+
+    [MaxLength(255)]
+    public string? GoogleId { get; set; }
 }

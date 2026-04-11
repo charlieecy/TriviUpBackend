@@ -1,0 +1,182 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build:
+    name: Build Project
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.102
+      - name: Restore & Build
+        run: |
+          dotnet restore
+          dotnet build --configuration Release
+      - name: Set matrix for parallel jobs
+        id: set-matrix
+        run: echo "matrix=bruno-playwright" >> $GITHUB_OUTPUT
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.102
+      - name: Run Unit Tests
+        run: |
+          mkdir -p UnitTestResults
+          dotnet test ./dawazonTest/dawazonTest.csproj \
+            --configuration Release \
+            --logger "trx;LogFileName=UnitTestResults/UnitTestResults.trx"
+
+  bruno-tests:
+    name: Bruno API Tests
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      Development: "true"
+      ASPNETCORE_ENVIRONMENT: Development
+      JWT_KEY: ${{ secrets.JWT_KEY }}
+      JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
+      JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
+      STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+      Server__Url: ${{ secrets.SERVER_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.102
+
+      - name: Restore & Build backend
+        run: |
+          dotnet restore
+          dotnet build ./dawazon2.0/dawazon2.0.csproj --configuration Release
+          dotnet build ./dawazonBackend/dawazonBackend.csproj --configuration Release
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Bruno CLI
+        run: npm install -g @usebruno/cli
+
+      - name: Start backend server
+        run: |
+          echo "Starting server..."
+          dotnet run --project ./dawazon2.0/dawazon2.0.csproj \
+            --configuration Release \
+            --no-build \
+            --urls "http://localhost:5041" &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for server
+        run: |
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5041/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Server ready after $i seconds"
+              break
+            fi
+            sleep 1
+          done
+          curl -f http://localhost:5041/health || (echo "Server failed to start" && exit 1)
+
+      - name: Run Bruno Tests
+        run: |
+          cd dawazonBrunoTest
+          bru run --env Local --format json
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then
+            kill $SERVER_PID 2>/dev/null || true
+          fi
+
+  playwright-tests:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      Development: "true"
+      ASPNETCORE_ENVIRONMENT: Development
+      JWT_KEY: ${{ secrets.JWT_KEY }}
+      JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
+      JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
+      STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+      Server__Url: ${{ secrets.SERVER_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.102
+
+      - name: Restore & Build projects
+        run: |
+          dotnet restore
+          dotnet build ./dawazon2.0/dawazon2.0.csproj --configuration Release
+          dotnet build ./dawazonPlayWrite/dawazonPlayWrite.csproj --configuration Release
+
+      - name: Install Playwright browsers
+        run: |
+          cd dawazonPlayWrite
+          dotnet tool install --global Microsoft.Playwright.CLI || true
+          playwright install --with-deps chromium
+
+      - name: Start backend server
+        run: |
+          echo "Starting server..."
+          dotnet run --project ./dawazon2.0/dawazon2.0.csproj \
+            --configuration Release \
+            --no-build \
+            --urls "http://localhost:5041" &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for server
+        run: |
+          for i in {1..60}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5041/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Server ready after $i seconds"
+              break
+            fi
+            sleep 1
+          done
+          curl -f http://localhost:5041/health || (echo "Server failed to start" && exit 1)
+
+      - name: Run Playwright E2E Tests
+        env:
+          E2E_BASE_URL: http://localhost:5041
+        run: |
+          mkdir -p E2ETestResults
+          dotnet test ./dawazonPlayWrite/dawazonPlayWrite.csproj \
+            --configuration Release \
+            --no-build \
+            --logger "trx;LogFileName=E2ETestResults/PlaywrightResults.trx" \
+            --verbosity normal
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then
+            kill $SERVER_PID 2>/dev/null || true
+          fi
