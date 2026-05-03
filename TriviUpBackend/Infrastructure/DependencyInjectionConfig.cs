@@ -1,4 +1,4 @@
-﻿using TriviUpBackend.Repositories.Users;
+using TriviUpBackend.Repositories.Users;
 using TriviUpBackend.Services.Auth;
 using TriviUpBackend.Cuestionarios.Repositories;
 using TriviUpBackend.Cuestionarios.Services;
@@ -15,7 +15,7 @@ public static class DependencyInjectionConfig
         //services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IQuizRepository, QuizRepository>();
-        
+
         // Servicios
         //services.AddScoped<IFunkoService, FunkoService>();
         //services.AddScoped<ICategoryService, CategoryService>();
@@ -23,11 +23,11 @@ public static class DependencyInjectionConfig
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IJwtTokenExtractor, JwtTokenExtractor>();
         services.AddScoped<IQuizService, QuizService>();
-        
+
         // Storage
         services.AddScoped<IStorage, Storage>();
         services.AddScoped<IProfilePhotoStorage, ProfilePhotoStorage>();
-        
+
         // Eventos
         //services.AddScoped<IEventPublisher, EventPublisher>();
 
