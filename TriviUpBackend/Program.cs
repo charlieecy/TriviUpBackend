@@ -1,4 +1,5 @@
 using TriviUpBackend.Infrastructure;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,9 @@ builder.Services.AddCorsPolicy(builder.Configuration, builder.Environment.IsDeve
 
 // Validaciones personalizadas para BadRequest
 builder.Services.AddCustomValidation();
+
+// Storage
+builder.Services.AddStorage();
 
 
 var app = builder.Build();

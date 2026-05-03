@@ -1,12 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TriviUpBackend.Data;
 using TriviUpBackend.Models.Auth;
+using TriviUpBackend.Cuestionarios.Entities;
 
 namespace TriviUpBackend.Database;
 
 public class Context(DbContextOptions options) : DbContext(options)
 {
     public DbSet<User> Users { get; set; } = null!;
+    public DbSet<Quiz> Quizzes { get; set; } = null!;
+    public DbSet<Pregunta> Preguntas { get; set; } = null!;
+    public DbSet<Respuesta> Respuestas { get; set; } = null!;
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -16,6 +20,30 @@ public class Context(DbContextOptions options) : DbContext(options)
             entity.HasQueryFilter(u => !u.IsDeleted);
             entity.ConfigureTimestamps();
             entity.HasIndex(u => u.GoogleId).IsUnique();
+        });
+
+        modelBuilder.Entity<Quiz>(entity =>
+        {
+            entity.ConfigureTimestamps();
+            entity.HasIndex(q => q.GameCode).IsUnique();
+            entity.HasMany(q => q.Preguntas)
+                .WithOne(p => p.Quiz)
+                .HasForeignKey(p => p.QuizId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Pregunta>(entity =>
+        {
+            entity.ConfigureTimestamps();
+            entity.HasMany(p => p.Respuestas)
+                .WithOne(r => r.Pregunta)
+                .HasForeignKey(r => r.PreguntaId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Respuesta>(entity =>
+        {
+            entity.ConfigureTimestamps();
         });
         
         SeedData(modelBuilder); // Llamamos al metodo para poblar la BD

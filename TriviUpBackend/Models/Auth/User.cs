@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using TriviUpBackend.Data;
@@ -38,4 +38,10 @@ public class User : ITimestamped
 
     [MaxLength(255)]
     public string? GoogleId { get; set; }
+
+    /// <summary>
+    /// Ruta relativa de la foto de perfil (ej: "profile-photos/123/profile.jpg")
+    /// </summary>
+    [MaxLength(500)]
+    public string? ProfilePhotoUrl { get; set; }
 }

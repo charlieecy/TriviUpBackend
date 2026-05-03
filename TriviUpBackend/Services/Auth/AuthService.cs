@@ -1,4 +1,4 @@
-﻿using CSharpFunctionalExtensions;
+using CSharpFunctionalExtensions;
 using TriviUpBackend.DTO.User;
 using TriviUpBackend.Errors;
 using TriviUpBackend.Models.Auth;
@@ -141,7 +141,8 @@ public class AuthService(
             user.Username,
             user.Email,
             user.Role,
-            user.CreatedAt
+            user.CreatedAt,
+            user.ProfilePhotoUrl
         );
 
         return new AuthResponseDto(token, userDto);
