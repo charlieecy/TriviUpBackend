@@ -94,7 +94,11 @@ public class CuestionariosController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyQuizzes()
     {
+        logger.LogInformation("GetMyQuizzes - User claims: {Claims}",
+            User.Claims.Select(c => $"{c.Type}={c.Value}").ToList());
         var userId = GetCurrentUserId();
+        logger.LogInformation("GetMyQuizzes - Extracted userId: {UserId}", userId);
+
         if (userId == null)
         {
             return Unauthorized(new { message = "Usuario no autenticado" });

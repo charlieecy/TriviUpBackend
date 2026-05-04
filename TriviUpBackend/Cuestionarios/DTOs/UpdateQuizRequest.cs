@@ -27,6 +27,9 @@ public record UpdatePreguntaRequest
     [MaxLength(1000, ErrorMessage = "El enunciado no puede exceder 1000 caracteres")]
     public string Enunciado { get; init; } = string.Empty;
 
+    [MaxLength(2000, ErrorMessage = "La URL de imagen no puede exceder 2000 caracteres")]
+    public string? ImagenUrl { get; init; }
+
     [Required(ErrorMessage = "Las respuestas son obligatorias")]
     [MinLength(2, ErrorMessage = "Debe haber al menos 2 respuestas")]
     public List<UpdateRespuestaRequest> Respuestas { get; init; } = new();

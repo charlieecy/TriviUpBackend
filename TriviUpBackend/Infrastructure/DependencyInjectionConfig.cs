@@ -27,6 +27,7 @@ public static class DependencyInjectionConfig
         // Storage
         services.AddScoped<IStorage, Storage>();
         services.AddScoped<IProfilePhotoStorage, ProfilePhotoStorage>();
+        services.AddScoped<IQuestionImageStorage, QuestionImageStorage>();
 
         // Eventos
         //services.AddScoped<IEventPublisher, EventPublisher>();

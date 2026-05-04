@@ -29,6 +29,9 @@ public class Pregunta : ITimestamped
     [MaxLength(1000)]
     public string Enunciado { get; set; } = string.Empty;
 
+    [MaxLength(2000)]
+    public string? ImagenUrl { get; set; }
+
     public List<Respuesta> Respuestas { get; set; } = new();
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;

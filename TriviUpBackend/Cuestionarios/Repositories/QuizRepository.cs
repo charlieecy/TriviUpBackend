@@ -28,6 +28,14 @@ public class QuizRepository(
             .FirstOrDefaultAsync(q => q.Id == id);
     }
 
+    public async Task<Quiz?> FindByQuestionIdAsync(long questionId)
+    {
+        return await context.Quizzes
+            .Include(q => q.Preguntas)
+                .ThenInclude(p => p.Respuestas)
+            .FirstOrDefaultAsync(q => q.Preguntas.Any(p => p.Id == questionId));
+    }
+
     public async Task<IEnumerable<Quiz>> FindAllAsync(int page = 1, int pageSize = 10)
     {
         return await context.Quizzes

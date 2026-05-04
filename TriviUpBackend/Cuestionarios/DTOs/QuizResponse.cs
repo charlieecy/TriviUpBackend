@@ -49,6 +49,9 @@ public record PreguntaResponse
     [property: JsonPropertyName("enunciado")]
     public string Enunciado { get; init; } = string.Empty;
 
+    [property: JsonPropertyName("imagenUrl")]
+    public string? ImagenUrl { get; init; }
+
     [property: JsonPropertyName("respuestas")]
     public List<RespuestaResponse> Respuestas { get; init; } = new();
 
@@ -57,6 +60,7 @@ public record PreguntaResponse
         Id = pregunta.Id,
         NumeroPregunta = pregunta.NumeroPregunta,
         Enunciado = pregunta.Enunciado,
+        ImagenUrl = pregunta.ImagenUrl,
         Respuestas = pregunta.Respuestas.Select(RespuestaResponse.FromEntity).ToList()
     };
 }

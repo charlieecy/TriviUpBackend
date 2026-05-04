@@ -75,6 +75,19 @@ public class Context(DbContextOptions options) : DbContext(options)
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        modelBuilder.Entity<User>().HasData(adminUser, normalUser);
+
+        var testUser = new User
+        {
+            Id = 3,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "$2a$11$DhWxVW/CPdqAxqo.LPDcCeDwFoEpCoi0vy.7ZPYxbOrpDeOaNZrFu",
+            Role = UserRoles.USER,
+            IsDeleted = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        modelBuilder.Entity<User>().HasData(adminUser, normalUser, testUser);
     }
 }

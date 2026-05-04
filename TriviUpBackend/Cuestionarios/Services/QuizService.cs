@@ -35,6 +35,7 @@ public class QuizService(
                 CreatorId = creatorId,
                 NumeroPregunta = p.NumeroPregunta,
                 Enunciado = p.Enunciado,
+                ImagenUrl = p.ImagenUrl,
                 Respuestas = p.Respuestas.Select(r => new Respuesta
                 {
                     Texto = r.Texto,
@@ -107,6 +108,7 @@ public class QuizService(
                 Id = p.Id,
                 NumeroPregunta = p.NumeroPregunta,
                 Enunciado = p.Enunciado,
+                ImagenUrl = p.ImagenUrl,
                 Respuestas = p.Respuestas.Select(r => new RespuestaResponse
                 {
                     Id = r.Id,
@@ -168,6 +170,7 @@ public class QuizService(
                 CreatorId = quiz.CreatorId,
                 NumeroPregunta = preguntaRequest.NumeroPregunta,
                 Enunciado = preguntaRequest.Enunciado,
+                ImagenUrl = preguntaRequest.ImagenUrl,
                 Respuestas = preguntaRequest.Respuestas.Select(r => new Respuesta
                 {
                     Texto = r.Texto,

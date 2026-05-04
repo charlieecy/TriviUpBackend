@@ -71,9 +71,13 @@ public class JwtTokenExtractor : IJwtTokenExtractor
     /// <inheritdoc />
     public (long? UserId, bool IsAdmin, string? Role) ExtractUserInfo(string token)
     {
+        _logger.LogDebug("Extrayendo userId del token. Token length: {Length}", token?.Length ?? 0);
+
         var userId = ExtractUserId(token);
         var role = ExtractRole(token);
         var isAdmin = role?.Equals("admin", StringComparison.OrdinalIgnoreCase) ?? false;
+
+        _logger.LogDebug("UserId extraído: {UserId}, IsAdmin: {IsAdmin}", userId, isAdmin);
 
         return (userId, isAdmin, role);
     }
