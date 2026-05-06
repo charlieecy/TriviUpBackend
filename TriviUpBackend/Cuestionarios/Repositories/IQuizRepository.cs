@@ -16,6 +16,18 @@ public interface IQuizRepository
 
     Task<IEnumerable<Quiz>> FindByCreatorIdAsync(long creatorId);
 
+    Task<IEnumerable<Quiz>> FindPublicQuizzesAsync(string? search, int page, int pageSize);
+
+    Task<int> GetPublicQuizzesCountAsync(string? search);
+
+    Task<Quiz?> FindPublicByIdAsync(long id);
+
+    Task<Quiz> IncrementVisitasAsync(long id);
+
+    Task<Quiz> IncrementLikesAsync(long id);
+
+    Task<Quiz> DecrementLikesAsync(long id);
+
     Task<Quiz> SaveAsync(Quiz quiz);
 
     Task<Quiz> UpdateAsync(Quiz quiz);

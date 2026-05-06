@@ -30,6 +30,9 @@ public class Context(DbContextOptions options) : DbContext(options)
                 .WithOne(p => p.Quiz)
                 .HasForeignKey(p => p.QuizId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(q => q.EsPublico).HasDefaultValue(false);
+            entity.Property(q => q.Visitas).HasDefaultValue(0);
+            entity.Property(q => q.Likes).HasDefaultValue(0);
         });
 
         modelBuilder.Entity<Pregunta>(entity =>
@@ -89,5 +92,84 @@ public class Context(DbContextOptions options) : DbContext(options)
         };
 
         modelBuilder.Entity<User>().HasData(adminUser, normalUser, testUser);
+
+        // QUIZZES PÚBLICOS DE PRUEBA
+        var publicQuizzes = new[]
+        {
+            new Quiz
+            {
+                Id = 1,
+                Nombre = "Trivia de Historia General",
+                GameCode = "HIST01",
+                CreatorId = 1,
+                EsPublico = true,
+                Visitas = 150,
+                Likes = 42,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Quiz
+            {
+                Id = 2,
+                Nombre = "Cultura General - Nivel Fácil",
+                GameCode = "CULT02",
+                CreatorId = 2,
+                EsPublico = true,
+                Visitas = 89,
+                Likes = 23,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Quiz
+            {
+                Id = 3,
+                Nombre = "Ciencia y Naturaleza",
+                GameCode = "SCIN03",
+                CreatorId = 1,
+                EsPublico = true,
+                Visitas = 234,
+                Likes = 67,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Quiz
+            {
+                Id = 4,
+                Nombre = "Geografía Mundial",
+                GameCode = "GEOM04",
+                CreatorId = 3,
+                EsPublico = true,
+                Visitas = 178,
+                Likes = 51,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Quiz
+            {
+                Id = 5,
+                Nombre = "Entretenimiento y Cine",
+                GameCode = "CINE05",
+                CreatorId = 2,
+                EsPublico = true,
+                Visitas = 312,
+                Likes = 95,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Quiz
+            {
+                Id = 6,
+                Nombre = "Quiz Privado de Prueba",
+                GameCode = "PRIV06",
+                CreatorId = 1,
+                EsPublico = false,
+                Visitas = 0,
+                Likes = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        };
+
+        modelBuilder.Entity<Quiz>().HasData(publicQuizzes);
     }
 }

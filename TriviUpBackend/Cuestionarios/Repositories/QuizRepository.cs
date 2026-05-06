@@ -55,6 +55,92 @@ public class QuizRepository(
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Quiz>> FindPublicQuizzesAsync(string? search, int page, int pageSize)
+    {
+        var query = context.Quizzes
+            .Include(q => q.Creator)
+            .Include(q => q.Preguntas)
+            .Where(q => q.EsPublico);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchTrimmed = search.Trim();
+            query = query.Where(q => q.Nombre.Contains(searchTrimmed));
+        }
+
+        return await query
+            .OrderByDescending(q => q.Visitas)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
+    public async Task<int> GetPublicQuizzesCountAsync(string? search)
+    {
+        var query = context.Quizzes.Where(q => q.EsPublico);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchTrimmed = search.Trim();
+            query = query.Where(q => q.Nombre.Contains(searchTrimmed));
+        }
+
+        return await query.CountAsync();
+    }
+
+    public async Task<Quiz?> FindPublicByIdAsync(long id)
+    {
+        return await context.Quizzes
+            .Include(q => q.Creator)
+            .Include(q => q.Preguntas)
+            .FirstOrDefaultAsync(q => q.Id == id && q.EsPublico);
+    }
+
+    public async Task<Quiz> IncrementVisitasAsync(long id)
+    {
+        var quiz = await FindByIdAsync(id);
+        if (quiz == null)
+        {
+            throw new InvalidOperationException($"Quiz with ID {id} not found");
+        }
+
+        quiz.Visitas++;
+        await context.SaveChangesAsync();
+        logger.LogInformation("Quiz {Id} visitas incremented to {Visitas}", id, quiz.Visitas);
+        return quiz;
+    }
+
+    public async Task<Quiz> IncrementLikesAsync(long id)
+    {
+        var quiz = await FindByIdAsync(id);
+        if (quiz == null)
+        {
+            throw new InvalidOperationException($"Quiz with ID {id} not found");
+        }
+
+        quiz.Likes++;
+        await context.SaveChangesAsync();
+        logger.LogInformation("Quiz {Id} likes incremented to {Likes}", id, quiz.Likes);
+        return quiz;
+    }
+
+    public async Task<Quiz> DecrementLikesAsync(long id)
+    {
+        var quiz = await FindByIdAsync(id);
+        if (quiz == null)
+        {
+            throw new InvalidOperationException($"Quiz with ID {id} not found");
+        }
+
+        if (quiz.Likes > 0)
+        {
+            quiz.Likes--;
+        }
+        await context.SaveChangesAsync();
+        logger.LogInformation("Quiz {Id} likes decremented to {Likes}", id, quiz.Likes);
+        return quiz;
+    }
+
     public async Task<Quiz> SaveAsync(Quiz quiz)
     {
         context.Quizzes.Add(quiz);

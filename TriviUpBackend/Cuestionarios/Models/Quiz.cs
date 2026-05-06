@@ -26,6 +26,12 @@ public class Quiz : ITimestamped
     [ForeignKey(nameof(CreatorId))]
     public Models.Auth.User? Creator { get; set; }
 
+    public bool EsPublico { get; set; } = false;
+
+    public int Visitas { get; set; } = 0;
+
+    public int Likes { get; set; } = 0;
+
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; init; } = DateTime.UtcNow;

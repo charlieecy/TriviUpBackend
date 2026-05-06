@@ -9,6 +9,8 @@ public record CreateQuizRequest
     [MaxLength(100, ErrorMessage = "El nombre no puede exceder 100 caracteres")]
     public string Nombre { get; init; } = string.Empty;
 
+    public bool EsPublico { get; init; } = false;
+
     [Required(ErrorMessage = "Las preguntas son obligatorias")]
     [MinLength(1, ErrorMessage = "Debe haber al menos una pregunta")]
     public List<CreatePreguntaRequest> Preguntas { get; init; } = new();

@@ -30,6 +30,7 @@ public class QuizService(
             Nombre = request.Nombre,
             GameCode = gameCode,
             CreatorId = creatorId,
+            EsPublico = request.EsPublico,
             Preguntas = request.Preguntas.Select(p => new Pregunta
             {
                 CreatorId = creatorId,
@@ -213,6 +214,66 @@ public class QuizService(
         logger.LogInformation("Quiz {Id} eliminado exitosamente", id);
 
         return UnitResult.Success<QuizError>();
+    }
+
+    public async Task<Result<(List<PublicQuizResponse> Quizzes, int TotalCount), QuizError>> GetPublicQuizzesAsync(string? search, int page, int pageSize)
+    {
+        logger.LogInformation("Obteniendo quizzes públicos - Search: {Search}, Page: {Page}, PageSize: {PageSize}",
+            search, page, pageSize);
+
+        var quizzes = await quizRepository.FindPublicQuizzesAsync(search, page, pageSize);
+        var totalCount = await quizRepository.GetPublicQuizzesCountAsync(search);
+
+        var publicQuizResponses = quizzes.Select(PublicQuizResponse.FromEntity).ToList();
+
+        logger.LogInformation("Se encontraron {Count} quizzes públicos de {Total} total", publicQuizResponses.Count, totalCount);
+
+        return Result.Success<(List<PublicQuizResponse>, int), QuizError>((publicQuizResponses, totalCount));
+    }
+
+    public async Task<Result<int, QuizError>> IncrementLikesAsync(long id)
+    {
+        logger.LogInformation("Incrementando likes del quiz {Id}", id);
+
+        var quiz = await quizRepository.FindByIdAsync(id);
+        if (quiz == null)
+        {
+            logger.LogWarning("Quiz no encontrado con ID: {Id}", id);
+            return Result.Failure<int, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado"));
+        }
+
+        var updatedQuiz = await quizRepository.IncrementLikesAsync(id);
+        return Result.Success<int, QuizError>(updatedQuiz.Likes);
+    }
+
+    public async Task<Result<int, QuizError>> DecrementLikesAsync(long id)
+    {
+        logger.LogInformation("Decrementando likes del quiz {Id}", id);
+
+        var quiz = await quizRepository.FindByIdAsync(id);
+        if (quiz == null)
+        {
+            logger.LogWarning("Quiz no encontrado con ID: {Id}", id);
+            return Result.Failure<int, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado"));
+        }
+
+        var updatedQuiz = await quizRepository.DecrementLikesAsync(id);
+        return Result.Success<int, QuizError>(updatedQuiz.Likes);
+    }
+
+    public async Task<Result<int, QuizError>> IncrementVisitasAsync(long id)
+    {
+        logger.LogInformation("Incrementando visitas del quiz {Id}", id);
+
+        var quiz = await quizRepository.FindByIdAsync(id);
+        if (quiz == null)
+        {
+            logger.LogWarning("Quiz no encontrado con ID: {Id}", id);
+            return Result.Failure<int, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado"));
+        }
+
+        var updatedQuiz = await quizRepository.IncrementVisitasAsync(id);
+        return Result.Success<int, QuizError>(updatedQuiz.Visitas);
     }
 
     private UnitResult<QuizError> ValidateCreateRequest(CreateQuizRequest request)
