@@ -11,28 +11,24 @@ public class UserRepository(
 {
     public async Task<User?> FindByIdAsync(long id)
     {
-        logger.LogDebug("Executing query with global filter - UserId: {UserId}", id);
         return await context.Users.FindAsync(id);
     }
-
+    
     public async Task<User?> FindByUsernameAsync(string username)
     {
-        logger.LogDebug("Executing query with global filter - Username: {Username}", username);
         return await context.Users.FirstOrDefaultAsync(u => u.Username == username);
     }
-
+    
     public async Task<User?> FindByEmailAsync(string email)
     {
-        logger.LogDebug("Executing query with global filter - Email: {Email}", email);
         return await context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
     public async Task<User?> FindByGoogleIdAsync(string googleId)
     {
-        logger.LogDebug("Executing query with global filter - GoogleId: {GoogleId}", googleId);
         return await context.Users.FirstOrDefaultAsync(u => u.GoogleId == googleId);
     }
-
+    
     public async Task<IEnumerable<User>> FindAllAsync()
     {
         return await context.Users.ToListAsync();
