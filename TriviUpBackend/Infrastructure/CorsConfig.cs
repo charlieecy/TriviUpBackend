@@ -9,11 +9,13 @@ public static class CorsConfig
         {
             if (isDevelopment)
             {
+                // SignalR requiere credenciales, así que no podemos usar AllowAnyOrigin
                 options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.AllowAnyOrigin()
+                    policy.WithOrigins("http://localhost:4200", "http://localhost:5164")
                         .AllowAnyMethod()
-                        .AllowAnyHeader();
+                        .AllowAnyHeader()
+                        .AllowCredentials();
                 });
             }
             else

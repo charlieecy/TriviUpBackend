@@ -1,3 +1,5 @@
+using TriviUpBackend.Cuestionarios.Entities;
+
 namespace TriviUpBackend.Game.Models;
 
 public class GameRoom

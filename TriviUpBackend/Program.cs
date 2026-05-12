@@ -1,5 +1,8 @@
 using TriviUpBackend.Infrastructure;
 using Microsoft.Extensions.FileProviders;
+using TriviUpBackend.Game.Hubs;
+using TriviUpBackend.Game.Services;
+using TriviUpBackend.Game.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +31,12 @@ builder.Services.AddCustomValidation();
 
 // Storage
 builder.Services.AddStorage();
+
+// Game Services (SignalR)
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ITurnManager, TurnManager>();
+builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddSingleton<GameOptions>();
 
 
 var app = builder.Build();
@@ -59,5 +68,8 @@ app.SeedDatabase();
 
 // Mapeo de Controladores
 app.MapControllers();
+
+// Game Hub (SignalR)
+app.MapHub<GameHub>("/hubs/game");
 
 app.Run();

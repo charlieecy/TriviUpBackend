@@ -30,7 +30,8 @@ public record PlayerDto(
     int CorrectAnswers,
     int WrongAnswers,
     bool IsCurrentTurn,
-    bool IsOwner
+    bool IsOwner,
+    bool IsConnected
 );
 
 public record TurnResultDto(

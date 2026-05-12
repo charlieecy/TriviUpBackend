@@ -22,6 +22,8 @@ public interface IQuizRepository
 
     Task<Quiz?> FindPublicByIdAsync(long id);
 
+    Task<List<Pregunta>> GetQuestionsWithAnswersAsync(long quizId);
+
     Task<Quiz> IncrementVisitasAsync(long id);
 
     Task<Quiz> IncrementLikesAsync(long id);
