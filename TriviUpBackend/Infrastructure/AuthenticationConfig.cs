@@ -7,7 +7,7 @@ namespace TriviUpBackend.Infrastructure;
 
 public static class AuthenticationConfig
 {
-
+  
     public static IServiceCollection AddAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
 
@@ -15,7 +15,7 @@ public static class AuthenticationConfig
                      ?? throw new InvalidOperationException("JWT Key no configurada");
         var jwtIssuer = configuration["Jwt:Issuer"] ?? "TiendaApi";
         var jwtAudience = configuration["Jwt:Audience"] ?? "TiendaApi";
-
+        
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -32,26 +32,23 @@ public static class AuthenticationConfig
                     ClockSkew = TimeSpan.Zero
                 };
 
-                // Necesario para SignalR: extraer token del query string
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
-                        // SignalR envía el token como query string ?access_token=xxx
-                        var path = context.HttpContext.Request.Path;
-                        if (path.StartsWithSegments("/hubs"))
+                        // SignalR envia el token via query string cuando se usa accessTokenFactory
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<JwtBearerEvents>>();
+                        var path = context.Request.Path;
+                        if (path.StartsWithSegments("/hubs/game"))
                         {
-                            var logger = context.HttpContext.RequestServices.GetService<ILogger<JwtBearerEvents>>();
-                            logger?.LogDebug("JwtBearer - SignalR request. Path: {Path}", path);
-
-                            // Extraer token del query string
-                            var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                            var accessToken = context.Request.Query["access_token"];
                             if (!string.IsNullOrEmpty(accessToken))
                             {
-                                logger?.LogDebug("JwtBearer - Token found in query string");
                                 context.Token = accessToken;
+                                logger.LogDebug("JwtBearer - SignalR token extracted from query string");
                             }
                         }
+                        logger.LogDebug("JwtBearer - Message received. Path: {Path}", context.Request.Path);
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>

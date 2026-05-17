@@ -24,6 +24,267 @@ public class UsersController(
 {
     private const long MaxFileSize = 5 * 1024 * 1024; // 5MB
 
+    // =====================================================
+    // ENDPOINTS DE ADMINISTRACIÓN (solo accesible para Admins)
+    // =====================================================
+
+    /// <summary>
+    /// Obtiene todos los usuarios (solo admins).
+    /// </summary>
+    /// <returns>Lista de usuarios.</returns>
+    [HttpGet]
+    [Authorize(Roles = UserRoles.ADMIN)]
+    [ProducesResponseType(typeof(IEnumerable<UserResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        logger.LogInformation("[GetAllUsers] Solicitando lista de usuarios");
+
+        var users = await userRepository.FindAllAsync();
+        var userDtos = users.Select(u => new UserResponseDto(
+            u.Id,
+            u.Username,
+            u.Email,
+            u.Role,
+            u.CreatedAt,
+            u.IsBanned
+        ));
+
+        logger.LogInformation("[GetAllUsers] Devolviendo {Count} usuarios", users.Count());
+        return Ok(userDtos);
+    }
+
+    /// <summary>
+    /// Obtiene un usuario por ID (solo admins).
+    /// </summary>
+    /// <param name="id">ID del usuario.</param>
+    /// <returns>Información del usuario.</returns>
+    [HttpGet("{id:long}")]
+    [Authorize(Roles = UserRoles.ADMIN)]
+    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserById(long id)
+    {
+        logger.LogInformation("[GetUserById] Buscando usuario {UserId}", id);
+
+        var user = await userRepository.FindByIdAsync(id);
+        if (user is null)
+        {
+            logger.LogWarning("[GetUserById] Usuario {UserId} no encontrado", id);
+            return NotFound(new { message = "Usuario no encontrado" });
+        }
+
+        var userDto = new UserResponseDto(
+            user.Id,
+            user.Username,
+            user.Email,
+            user.Role,
+            user.CreatedAt,
+            user.IsBanned
+        );
+
+        return Ok(userDto);
+    }
+
+    /// <summary>
+    /// Actualiza un usuario (solo admins).
+    /// Permite cambiar: username, email, role.
+    /// </summary>
+    /// <param name="id">ID del usuario a actualizar.</param>
+    /// <param name="dto">Campos a actualizar.</param>
+    /// <returns>Usuario actualizado.</returns>
+    [HttpPut("{id:long}")]
+    [Authorize(Roles = UserRoles.ADMIN)]
+    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateUser(long id, [FromBody] AdminUpdateUserDto dto)
+    {
+        logger.LogInformation("[UpdateUser] Actualizando usuario {UserId}", id);
+
+        var user = await userRepository.FindByIdAsync(id);
+        if (user is null)
+        {
+            logger.LogWarning("[UpdateUser] Usuario {UserId} no encontrado", id);
+            return NotFound(new { message = "Usuario no encontrado" });
+        }
+
+        var messages = new List<string>();
+
+        // Validar y actualizar username si se provee
+        if (!string.IsNullOrEmpty(dto.Username))
+        {
+            var usernameValidation = ValidateUsername(dto.Username);
+            if (usernameValidation.IsFailure)
+            {
+                return BadRequest(new { message = usernameValidation.Error });
+            }
+
+            // Verificar que el username no esté en uso por otro usuario
+            var existingUser = await userRepository.FindByUsernameAsync(dto.Username);
+            if (existingUser is not null && existingUser.Id != id)
+            {
+                return Conflict(new { message = "El nombre de usuario ya está en uso" });
+            }
+
+            if (user.Username != dto.Username)
+            {
+                user.Username = dto.Username;
+                messages.Add("username actualizado");
+            }
+        }
+
+        // Validar y actualizar email si se provee
+        if (!string.IsNullOrEmpty(dto.Email))
+        {
+            var emailValidation = ValidateEmail(dto.Email);
+            if (emailValidation.IsFailure)
+            {
+                return BadRequest(new { message = emailValidation.Error });
+            }
+
+            // Verificar que el email no esté en uso por otro usuario
+            var existingEmail = await userRepository.FindByEmailAsync(dto.Email);
+            if (existingEmail is not null && existingEmail.Id != id)
+            {
+                return Conflict(new { message = "El correo electrónico ya está en uso" });
+            }
+
+            if (user.Email != dto.Email)
+            {
+                user.Email = dto.Email;
+                messages.Add("email actualizado");
+            }
+        }
+
+        // Validar y actualizar role si se provee
+        if (!string.IsNullOrEmpty(dto.Role))
+        {
+            var roleValidation = ValidateRole(dto.Role);
+            if (roleValidation.IsFailure)
+            {
+                return BadRequest(new { message = roleValidation.Error });
+            }
+
+            if (user.Role != dto.Role)
+            {
+                user.Role = dto.Role;
+                messages.Add("role actualizado");
+            }
+        }
+
+        // Si no hay cambios, retornar éxito sin actualizar
+        if (messages.Count == 0)
+        {
+            return Ok(new UserResponseDto(
+                user.Id,
+                user.Username,
+                user.Email,
+                user.Role,
+                user.CreatedAt,
+                user.IsBanned
+            ));
+        }
+
+        await userRepository.UpdateAsync(user);
+
+        logger.LogInformation("[UpdateUser] Usuario {UserId} actualizado: {Changes}", id, string.Join(", ", messages));
+
+        return Ok(new UserResponseDto(
+            user.Id,
+            user.Username,
+            user.Email,
+            user.Role,
+            user.CreatedAt,
+            user.IsBanned
+        ));
+    }
+
+    /// <summary>
+    /// Banea a un usuario (solo admins).
+    /// Un admin no puede banearse a sí mismo.
+    /// </summary>
+    /// <param name="id">ID del usuario a banear.</param>
+    /// <returns>Mensaje de éxito.</returns>
+    [HttpPost("{id:long}/ban")]
+    [Authorize(Roles = UserRoles.ADMIN)]
+    [ProducesResponseType(typeof(BanUserResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> BanUser(long id)
+    {
+        logger.LogInformation("[BanUser] Intentando banear usuario {UserId}", id);
+
+        var user = await userRepository.FindByIdAsync(id);
+        if (user is null)
+        {
+            logger.LogWarning("[BanUser] Usuario {UserId} no encontrado", id);
+            return NotFound(new { message = "Usuario no encontrado" });
+        }
+
+        // Verificar que no se puede banear a sí mismo
+        var token = ExtractTokenFromRequest();
+        if (token is null)
+        {
+            logger.LogWarning("[BanUser] Token no proporcionado");
+            return Unauthorized(new { message = "Token no proporcionado" });
+        }
+
+        var currentUserId = jwtTokenExtractor.ExtractUserId(token);
+        if (currentUserId == id)
+        {
+            logger.LogWarning("[BanUser] Admin {AdminId} intentó banearse a sí mismo", id);
+            return BadRequest(new { message = "No puedes banearte a ti mismo" });
+        }
+
+        user.IsBanned = true;
+        await userRepository.UpdateAsync(user);
+
+        logger.LogInformation("[BanUser] Usuario {UserId} ha sido baneado por admin", id);
+        return Ok(new BanUserResponseDto("Usuario baneado correctamente"));
+    }
+
+    /// <summary>
+    /// Activa a un usuario baneado (solo admins).
+    /// </summary>
+    /// <param name="id">ID del usuario a activar.</param>
+    /// <returns>Mensaje de éxito.</returns>
+    [HttpPost("{id:long}/activate")]
+    [Authorize(Roles = UserRoles.ADMIN)]
+    [ProducesResponseType(typeof(BanUserResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ActivateUser(long id)
+    {
+        logger.LogInformation("[ActivateUser] Intentando activar usuario {UserId}", id);
+
+        var user = await userRepository.FindByIdAsync(id);
+        if (user is null)
+        {
+            logger.LogWarning("[ActivateUser] Usuario {UserId} no encontrado", id);
+            return NotFound(new { message = "Usuario no encontrado" });
+        }
+
+        user.IsBanned = false;
+        await userRepository.UpdateAsync(user);
+
+        logger.LogInformation("[ActivateUser] Usuario {UserId} ha sido activado por admin", id);
+        return Ok(new BanUserResponseDto("Usuario activado correctamente"));
+    }
+
+    // =====================================================
+    // ENDPOINTS DE PERFIL DE USUARIO
+    // =====================================================
+
     /// <summary>
     /// Actualiza la foto de perfil del usuario autenticado.
     /// </summary>
@@ -402,6 +663,24 @@ public class UsersController(
     }
 
     /// <summary>
+    /// Valida el rol del usuario.
+    /// </summary>
+    private static Result<bool, string> ValidateRole(string role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return Result.Failure<bool, string>("El rol no puede estar vacío");
+        }
+
+        if (role != UserRoles.USER && role != UserRoles.ADMIN)
+        {
+            return Result.Failure<bool, string>($"Rol inválido. Debe ser '{UserRoles.USER}' o '{UserRoles.ADMIN}'");
+        }
+
+        return Result.Success<bool, string>(true);
+    }
+
+    /// <summary>
     /// Mapea un usuario a UserDto incluyendo la URL completa de la foto de perfil.
     /// </summary>
     private UserDto MapToUserDto(User user)
@@ -432,5 +711,12 @@ public record ProfilePhotoResponseDto(
 /// Respuesta DTO para la eliminación de foto de perfil.
 /// </summary>
 public record ProfilePhotoDeleteResponseDto(
+    [property: JsonPropertyName("message")] string Message
+);
+
+/// <summary>
+/// Respuesta DTO para el banneo de usuario.
+/// </summary>
+public record BanUserResponseDto(
     [property: JsonPropertyName("message")] string Message
 );

@@ -32,6 +32,8 @@ public class User : ITimestamped
 
     public bool IsDeleted { get; set; } = false;
 
+    public bool IsBanned { get; set; } = false;
+
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; init; } = DateTime.UtcNow;

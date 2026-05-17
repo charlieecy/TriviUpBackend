@@ -22,8 +22,6 @@ public interface IQuizRepository
 
     Task<Quiz?> FindPublicByIdAsync(long id);
 
-    Task<List<Pregunta>> GetQuestionsWithAnswersAsync(long quizId);
-
     Task<Quiz> IncrementVisitasAsync(long id);
 
     Task<Quiz> IncrementLikesAsync(long id);
@@ -37,4 +35,6 @@ public interface IQuizRepository
     Task DeleteAsync(long id);
 
     Task<int> GetTotalCountAsync();
+
+    Task<List<Pregunta>> GetQuestionsWithAnswersAsync(long quizId);
 }

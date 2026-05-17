@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TriviUpBackend.Cuestionarios.Entities;
 using TriviUpBackend.Database;
-using Pregunta = TriviUpBackend.Cuestionarios.Entities.Pregunta;
 
 namespace TriviUpBackend.Cuestionarios.Repositories;
 
@@ -97,14 +96,6 @@ public class QuizRepository(
             .FirstOrDefaultAsync(q => q.Id == id && q.EsPublico);
     }
 
-    public async Task<List<Pregunta>> GetQuestionsWithAnswersAsync(long quizId)
-    {
-        return await context.Preguntas
-            .Where(p => p.QuizId == quizId)
-            .Include(p => p.Respuestas)
-            .ToListAsync();
-    }
-
     public async Task<Quiz> IncrementVisitasAsync(long id)
     {
         var quiz = await FindByIdAsync(id);
@@ -180,5 +171,14 @@ public class QuizRepository(
     public async Task<int> GetTotalCountAsync()
     {
         return await context.Quizzes.CountAsync();
+    }
+
+    public async Task<List<Pregunta>> GetQuestionsWithAnswersAsync(long quizId)
+    {
+        return await context.Preguntas
+            .Where(p => p.QuizId == quizId)
+            .Include(p => p.Respuestas)
+            .OrderBy(p => p.NumeroPregunta)
+            .ToListAsync();
     }
 }

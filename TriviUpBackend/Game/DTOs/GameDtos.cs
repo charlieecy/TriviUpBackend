@@ -73,3 +73,22 @@ public record QuestionDto(
     List<string> Options,
     string? ImageUrl
 );
+
+public record GameHistoryDto(
+    long GameId,
+    long QuizId,
+    string QuizTitle,
+    DateTime StartedAt,
+    DateTime EndedAt,
+    long OwnerId,
+    List<HistoryPlayerResultDto> PlayerResults
+);
+
+public record HistoryPlayerResultDto(
+    long UserId,
+    string Username,
+    int FinalScore,
+    int CorrectAnswers,
+    int WrongAnswers,
+    int Rank
+);

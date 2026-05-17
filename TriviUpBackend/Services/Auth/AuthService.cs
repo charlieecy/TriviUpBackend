@@ -69,6 +69,16 @@ public class AuthService(
             );
         }
 
+        // Verificar si el usuario está baneado
+        if (user.IsBanned)
+        {
+            logger.LogWarning("[SignIn] Usuario {UserId} ({Email}) intentó iniciar sesión pero está baneado",
+                user.Id, user.Email);
+            return Result.Failure<AuthResponseDto, AuthError>(
+                new AuthUnauthorizedError("Tu cuenta ha sido suspendida. Contacta con un administrador.")
+            );
+        }
+
         var authResponse = GenerateAuthResponse(user);
         logger.LogInformation("Usuario inició sesión correctamente: {Username}", sanitizedUsername);
 

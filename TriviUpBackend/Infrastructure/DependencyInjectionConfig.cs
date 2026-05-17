@@ -3,6 +3,7 @@ using TriviUpBackend.Services.Auth;
 using TriviUpBackend.Cuestionarios.Repositories;
 using TriviUpBackend.Cuestionarios.Services;
 using TriviUpBackend.Common.Storage;
+using TriviUpBackend.Game.Repositories;
 
 namespace TriviUpBackend.Infrastructure;
 
@@ -15,6 +16,7 @@ public static class DependencyInjectionConfig
         //services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IQuizRepository, QuizRepository>();
+        services.AddScoped<IGameHistoryRepository, GameHistoryRepository>();
 
         // Servicios
         //services.AddScoped<IFunkoService, FunkoService>();
