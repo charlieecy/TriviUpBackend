@@ -7,7 +7,7 @@ using TriviUpBackend.Game.Repositories;
 namespace TriviUpBackend.Game.Controllers;
 
 [ApiController]
-[Route("game")]
+[Route("api/game")]
 [Produces("application/json")]
 [Authorize]
 public class GamesController(
