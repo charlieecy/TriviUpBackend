@@ -40,12 +40,19 @@ public class GameService : IGameService
     {
         _logger.LogInformation("Creating game room for quiz {QuizId} by owner {OwnerId} ({Username})", quizId, ownerId, username);
 
+        // Obtener el título del quiz
+        using var scope = _scopeFactory.CreateScope();
+        var quizRepository = scope.ServiceProvider.GetRequiredService<IQuizRepository>();
+        var quiz = await quizRepository.FindByIdAsync(quizId);
+        var quizTitle = quiz?.Nombre ?? "Quiz Desconocido";
+
         var roomCode = GenerateRoomCode();
 
         var room = new GameRoom
         {
             RoomCode = roomCode,
             QuizId = quizId,
+            QuizTitle = quizTitle,
             OwnerId = ownerId,
             State = GameState.Waiting,
             Players = new List<Player>(),

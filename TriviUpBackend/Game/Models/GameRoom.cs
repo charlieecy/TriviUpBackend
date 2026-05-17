@@ -6,6 +6,7 @@ public class GameRoom
 {
     public string RoomCode { get; set; } = string.Empty;
     public long QuizId { get; set; }
+    public string QuizTitle { get; set; } = string.Empty;
     public long OwnerId { get; set; }
     public GameState State { get; set; } = GameState.Waiting;
     public List<Player> Players { get; set; } = new();
