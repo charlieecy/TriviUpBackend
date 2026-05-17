@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using TriviUpBackend.Game.Hubs;
 using CSharpFunctionalExtensions;
 using TriviUpBackend.Game.DTOs;
+using TriviUpBackend.Game.Repositories;
 using TriviUpBackend.Cuestionarios.Repositories;
 using Pregunta = TriviUpBackend.Cuestionarios.Entities.Pregunta;
 using Respuesta = TriviUpBackend.Cuestionarios.Entities.Respuesta;
@@ -410,11 +411,13 @@ public class GameService : IGameService
 
         _logger.LogInformation("Game ended in room {RoomCode}", roomCode);
 
-        // Broadcast GameFinished
+        // Obtener scope para servicios
         using var scope = _scopeFactory.CreateScope();
         var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<GameHub>>();
 
-        var playerResults = room.Players
+        // Filtrar players (excluir owner) y ordenar por score
+        var filteredPlayers = room.Players
+            .Where(p => p.UserId != room.OwnerId)
             .OrderByDescending(p => p.Score)
             .Select((p, index) => new PlayerResultDto(
                 p.UserId,
@@ -432,12 +435,34 @@ public class GameService : IGameService
         var gameResult = new GameResultDto(
             roomCode,
             string.Empty,
-            playerResults,
+            filteredPlayers,
             room.Questions.Count,
             room.EndedAt!.Value - room.StartedAt!.Value
         );
 
         await hubContext.Clients.Group(roomCode).SendAsync("GameFinished", gameResult);
+
+        // Persistir GameHistory
+        try
+        {
+            var gameHistoryRepo = scope.ServiceProvider.GetRequiredService<IGameHistoryRepository>();
+            var history = new GameHistory
+            {
+                GameId = room.QuizId * 1000 + room.Players.Count,
+                QuizId = room.QuizId,
+                OwnerId = room.OwnerId,
+                QuizTitle = room.QuizTitle,
+                StartedAt = room.StartedAt!.Value,
+                EndedAt = room.EndedAt!.Value,
+                PlayerResultsJson = System.Text.Json.JsonSerializer.Serialize(filteredPlayers)
+            };
+            await gameHistoryRepo.AddAsync(history);
+            _logger.LogInformation("Game history persisted for room {RoomCode}", roomCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to persist game history for room {RoomCode}", roomCode);
+        }
 
         _roomTurnManagers.TryRemove(roomCode, out _);
     }
