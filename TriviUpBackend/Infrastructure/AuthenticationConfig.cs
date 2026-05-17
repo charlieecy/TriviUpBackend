@@ -36,7 +36,18 @@ public static class AuthenticationConfig
                 {
                     OnMessageReceived = context =>
                     {
+                        // SignalR envia el token via query string cuando se usa accessTokenFactory
                         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<JwtBearerEvents>>();
+                        var path = context.Request.Path;
+                        if (path.StartsWithSegments("/hubs/game"))
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            if (!string.IsNullOrEmpty(accessToken))
+                            {
+                                context.Token = accessToken;
+                                logger.LogDebug("JwtBearer - SignalR token extracted from query string");
+                            }
+                        }
                         logger.LogDebug("JwtBearer - Message received. Path: {Path}", context.Request.Path);
                         return Task.CompletedTask;
                     },
