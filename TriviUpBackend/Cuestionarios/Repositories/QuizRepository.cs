@@ -172,4 +172,13 @@ public class QuizRepository(
     {
         return await context.Quizzes.CountAsync();
     }
+
+    public async Task<List<Pregunta>> GetQuestionsWithAnswersAsync(long quizId)
+    {
+        return await context.Preguntas
+            .Where(p => p.QuizId == quizId)
+            .Include(p => p.Respuestas)
+            .OrderBy(p => p.NumeroPregunta)
+            .ToListAsync();
+    }
 }

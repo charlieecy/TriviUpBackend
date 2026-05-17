@@ -35,4 +35,6 @@ public interface IQuizRepository
     Task DeleteAsync(long id);
 
     Task<int> GetTotalCountAsync();
+
+    Task<List<Pregunta>> GetQuestionsWithAnswersAsync(long quizId);
 }
