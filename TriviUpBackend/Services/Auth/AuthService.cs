@@ -38,6 +38,11 @@ public class AuthService(
         };
 
         var savedUser = await userRepository.SaveAsync(user);
+
+        // Set LastLoginAt since registration also logs the user in
+        savedUser.LastLoginAt = DateTime.UtcNow;
+        await userRepository.UpdateAsync(savedUser);
+
         var authResponse = GenerateAuthResponse(savedUser);
 
         logger.LogInformation("User registered successfully: {Username}", sanitizedUsername);
@@ -79,6 +84,10 @@ public class AuthService(
             );
         }
 
+        // Actualizar LastLoginAt
+        user.LastLoginAt = DateTime.UtcNow;
+        await userRepository.UpdateAsync(user);
+
         var authResponse = GenerateAuthResponse(user);
         logger.LogInformation("Usuario inició sesión correctamente: {Username}", sanitizedUsername);
 
@@ -92,6 +101,8 @@ public class AuthService(
         var existingByGoogleId = await userRepository.FindByGoogleIdAsync(googleId);
         if (existingByGoogleId is not null)
         {
+            existingByGoogleId.LastLoginAt = DateTime.UtcNow;
+            await userRepository.UpdateAsync(existingByGoogleId);
             var response = GenerateAuthResponse(existingByGoogleId);
             logger.LogInformation("Google user signed in: {Email}", email);
             return Result.Success<AuthResponseDto, AuthError>(response);
@@ -101,6 +112,7 @@ public class AuthService(
         if (existingByEmail is not null)
         {
             existingByEmail.GoogleId = googleId;
+            existingByEmail.LastLoginAt = DateTime.UtcNow;
             await userRepository.UpdateAsync(existingByEmail);
             var response = GenerateAuthResponse(existingByEmail);
             logger.LogInformation("Linked existing user to Google: {Email}", email);
@@ -114,7 +126,8 @@ public class AuthService(
             GoogleId = googleId,
             PasswordHash = string.Empty,
             Role = UserRoles.USER,
-            IsDeleted = false
+            IsDeleted = false,
+            LastLoginAt = DateTime.UtcNow
         };
 
         var savedUser = await userRepository.SaveAsync(user);

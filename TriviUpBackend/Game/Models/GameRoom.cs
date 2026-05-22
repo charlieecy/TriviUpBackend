@@ -16,4 +16,6 @@ public class GameRoom
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
+    public DateTime? TurnStartedAt { get; set; }
+    public int? PausedTimeRemaining { get; set; }
 }

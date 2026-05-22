@@ -92,3 +92,47 @@ public record HistoryPlayerResultDto(
     int WrongAnswers,
     int Rank
 );
+
+public record GamePausedDto(
+    string RoomCode,
+    DateTime PausedAt
+);
+
+public record GameResumedDto(
+    string RoomCode,
+    int TimeRemaining
+);
+
+// Admin Stats DTOs
+public record AdminStatsDto(
+    int TotalGamesPlayed,
+    int TotalQuizzes,
+    int TotalUsers,
+    int ActiveUsersLast24h,
+    QuizWithMostFavoritesDto? MostFavoritesQuiz,
+    QuizWithMostVisitsDto? MostVisitsQuiz,
+    List<DailyGamesDto> GamesPerDay,
+    List<ActiveUsersDto> ActiveUsersPerDay
+);
+
+public record QuizWithMostFavoritesDto(
+    long Id,
+    string Nombre,
+    int Favorites
+);
+
+public record QuizWithMostVisitsDto(
+    long Id,
+    string Nombre,
+    int Visitas
+);
+
+public record DailyGamesDto(
+    DateTime Date,
+    int Count
+);
+
+public record ActiveUsersDto(
+    DateTime Date,
+    int Count
+);

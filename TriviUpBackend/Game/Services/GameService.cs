@@ -240,6 +240,10 @@ public class GameService : IGameService
 
         _logger.LogInformation("Game started in room {RoomCode} with {QuestionCount} questions", roomCode, questions.Count);
 
+        // Iniciar timer para el primer turno
+        room.TurnStartedAt = DateTime.UtcNow;
+        StartTurnTimer(roomCode, _options.QuestionTimeLimit);
+
         // Broadcast TurnStarted para el primer turno
         await BroadcastTurnStartedAsync(roomCode);
 
@@ -331,17 +335,29 @@ public class GameService : IGameService
 
     private async Task AdvanceToNextTurnAsync(string roomCode)
     {
+        _logger.LogInformation("[ADVANCE] AdvanceToNextTurnAsync called for room {RoomCode}", roomCode);
+
         if (!_rooms.TryGetValue(roomCode, out var room))
+        {
+            _logger.LogWarning("[ADVANCE] Room {RoomCode} not found", roomCode);
             return;
+        }
 
         if (!_roomTurnManagers.TryGetValue(roomCode, out var turnManager))
+        {
+            _logger.LogWarning("[ADVANCE] TurnManager not found for room {RoomCode}", roomCode);
             return;
+        }
 
         // Comprobar si la partida ha terminado
         room.CurrentQuestionIndex++;
+        _logger.LogInformation("[ADVANCE] Incremented question index to {Index} of {Total} for room {RoomCode}",
+            room.CurrentQuestionIndex, room.Questions.Count, roomCode);
 
         if (room.CurrentQuestionIndex >= room.Questions.Count)
         {
+            _logger.LogInformation("[ADVANCE] No more questions ({Index} >= {Total}). Ending game for room {RoomCode}",
+                room.CurrentQuestionIndex, room.Questions.Count, roomCode);
             // Game over - enviar GameFinished
             await EndGameAsync(roomCode);
             return;
@@ -349,42 +365,72 @@ public class GameService : IGameService
 
         // Mover al siguiente jugador
         var nextPlayerId = turnManager.GetNextPlayer();
+        _logger.LogInformation("[ADVANCE] Next player ID: {PlayerId} for room {RoomCode}", nextPlayerId, roomCode);
+
         if (nextPlayerId == null)
         {
+            _logger.LogInformation("[ADVANCE] No more players. Ending game for room {RoomCode}", roomCode);
             // No hay mas jugadores - game over
             await EndGameAsync(roomCode);
             return;
         }
 
         // Iniciar temporizador de turnos para el siguiente jugador
+        room.TurnStartedAt = DateTime.UtcNow;
+        _logger.LogInformation("[ADVANCE] Starting timer with {TimeLimit} seconds for room {RoomCode}",
+            _options.QuestionTimeLimit, roomCode);
         StartTurnTimer(roomCode, _options.QuestionTimeLimit);
 
         // Broadcast TurnStarted para el nuevo turno
+        _logger.LogInformation("[ADVANCE] Broadcasting TurnStarted for room {RoomCode}", roomCode);
         await BroadcastTurnStartedAsync(roomCode);
     }
 
     private async Task HandleTurnTimeoutAsync(string roomCode)
     {
+        _logger.LogWarning("[TIMEOUT] HandleTurnTimeoutAsync called for room {RoomCode}", roomCode);
+
         if (!_rooms.TryGetValue(roomCode, out var room))
+        {
+            _logger.LogWarning("[TIMEOUT] Room {RoomCode} not found", roomCode);
             return;
+        }
 
         if (!_roomTurnManagers.TryGetValue(roomCode, out var turnManager))
+        {
+            _logger.LogWarning("[TIMEOUT] TurnManager not found for room {RoomCode}", roomCode);
             return;
+        }
 
         var currentPlayerId = turnManager.GetCurrentPlayer();
         if (currentPlayerId == null)
+        {
+            _logger.LogWarning("[TIMEOUT] No current player in room {RoomCode}", roomCode);
             return;
+        }
 
         var player = room.Players.FirstOrDefault(p => p.UserId == currentPlayerId);
         if (player == null)
+        {
+            _logger.LogWarning("[TIMEOUT] Player {PlayerId} not found in room {RoomCode}", currentPlayerId, roomCode);
             return;
+        }
 
         // Marcar como respuesta incorrecta
         player.WrongAnswers++;
 
-        _logger.LogInformation("Turn timeout for user {UserId} in room {RoomCode}", currentPlayerId, roomCode);
+        _logger.LogInformation("[TIMEOUT] Turn timeout for user {UserId} (username: {Username}) in room {RoomCode}. CurrentQuestionIndex: {QuestionIndex}, TotalQuestions: {TotalQuestions}",
+            currentPlayerId, player.Username, roomCode, room.CurrentQuestionIndex, room.Questions.Count);
 
         // Obtener pregunta actual para encontrar el indice de respuesta correcto
+        if (room.CurrentQuestionIndex >= room.Questions.Count)
+        {
+            _logger.LogWarning("[TIMEOUT] CurrentQuestionIndex {Index} >= Questions.Count {Count}. Ending game.",
+                room.CurrentQuestionIndex, room.Questions.Count);
+            await EndGameAsync(roomCode);
+            return;
+        }
+
         var question = room.Questions[room.CurrentQuestionIndex];
         var correctAnswer = question.Respuestas.FirstOrDefault(r => r.EsCorrecta);
         int correctAnswerIndex = correctAnswer != null ? question.Respuestas.IndexOf(correctAnswer) : -1;
@@ -398,8 +444,12 @@ public class GameService : IGameService
             player.Score
         );
 
+        _logger.LogInformation("[TIMEOUT] Broadcasting TurnTimeout for player {PlayerId} in room {RoomCode}", currentPlayerId, roomCode);
+
         // Crear TurnTimeoutDto
         await BroadcastTurnTimeoutAsync(roomCode, turnResult);
+
+        _logger.LogInformation("[TIMEOUT] Calling AdvanceToNextTurnAsync for room {RoomCode}", roomCode);
 
         // Avanzar al siguiente turno
         await AdvanceToNextTurnAsync(roomCode);
@@ -479,16 +529,22 @@ public class GameService : IGameService
         var cts = new CancellationTokenSource();
         _turnTimers[roomCode] = cts;
 
+        _logger.LogInformation("[TIMER] Started turn timer for room {RoomCode} with {TimeLimit} seconds",
+            roomCode, timeLimitSeconds);
+
         _ = Task.Run(async () =>
         {
+            _logger.LogInformation("[TIMER] Timer task started for room {RoomCode}, will fire in {TimeLimit} seconds", roomCode, timeLimitSeconds);
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(timeLimitSeconds), cts.Token);
+                _logger.LogWarning("[TIMER] Timer task completed without cancellation for room {RoomCode} - calling HandleTurnTimeoutAsync", roomCode);
                 // Temporizador caducado - manejar timeout
                 await HandleTurnTimeoutAsync(roomCode);
             }
             catch (TaskCanceledException)
             {
+                _logger.LogInformation("[TIMER] Timer cancelled for room {RoomCode} - answer was submitted in time", roomCode);
                 // Turno fue respondido a tiempo, temporizador cancelado
             }
         });
@@ -498,7 +554,12 @@ public class GameService : IGameService
     {
         if (_turnTimers.TryRemove(roomCode, out var cts))
         {
+            _logger.LogInformation("[TIMER] Cancelling timer for room {RoomCode}", roomCode);
             cts.Cancel();
+        }
+        else
+        {
+            _logger.LogWarning("[TIMER] No timer found to cancel for room {RoomCode}", roomCode);
         }
     }
 
@@ -522,11 +583,13 @@ public class GameService : IGameService
             question.ImagenUrl
         );
 
+        // Enviamos timeLimit - 1 para que el frontend muestre 20s mientras el backend cuenta 21s
+        // así cuando el frontend llega a 0, queda 1 segundo extra de gracia
         var turnStartedDto = new TurnStartedDto(
             currentPlayerId.Value,
-            false, 
+            false,
             questionDto,
-            _options.QuestionTimeLimit
+            _options.QuestionTimeLimit - 1
         );
 
         using var scope = _scopeFactory.CreateScope();
@@ -549,6 +612,162 @@ public class GameService : IGameService
         var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<GameHub>>();
         await hubContext.Clients.Group(roomCode).SendAsync("TurnTimeout", turnResult);
         _logger.LogDebug("Broadcast TurnTimeout for player {PlayerId} in room {RoomCode}", turnResult.PlayerId, roomCode);
+    }
+
+    public async Task<Result> PauseGameAsync(string roomCode, long userId)
+    {
+        if (!_rooms.TryGetValue(roomCode, out var room))
+        {
+            _logger.LogWarning("Pause attempt on non-existent room: {RoomCode}", roomCode);
+            return Result.Failure("Room not found.");
+        }
+
+        if (room.OwnerId != userId)
+        {
+            _logger.LogWarning("Non-owner {UserId} attempted to pause room {RoomCode}", userId, roomCode);
+            return Result.Failure("Only the owner can pause the game.");
+        }
+
+        if (room.State != GameState.Playing)
+        {
+            _logger.LogWarning("Pause attempt on room {RoomCode} with state {State}", roomCode, room.State);
+            return Result.Failure("Game can only be paused when playing.");
+        }
+
+        // Calcular tiempo restante del turno actual
+        if (room.TurnStartedAt.HasValue)
+        {
+            var elapsed = (DateTime.UtcNow - room.TurnStartedAt.Value).TotalSeconds;
+            var timeRemaining = Math.Max(0, _options.QuestionTimeLimit - (int)elapsed);
+            room.PausedTimeRemaining = timeRemaining;
+        }
+
+        // Cancelar el temporizador del turno
+        CancelTurnTimer(roomCode);
+
+        // Cambiar estado a Paused
+        room.State = GameState.Paused;
+
+        _logger.LogInformation("Game paused in room {RoomCode} by owner {UserId}. Time remaining: {TimeRemaining}s",
+            roomCode, userId, room.PausedTimeRemaining);
+
+        // Broadcast GamePaused
+        await BroadcastGamePausedAsync(roomCode);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> ResumeGameAsync(string roomCode, long userId)
+    {
+        if (!_rooms.TryGetValue(roomCode, out var room))
+        {
+            _logger.LogWarning("Resume attempt on non-existent room: {RoomCode}", roomCode);
+            return Result.Failure("Room not found.");
+        }
+
+        if (room.OwnerId != userId)
+        {
+            _logger.LogWarning("Non-owner {UserId} attempted to resume room {RoomCode}", userId, roomCode);
+            return Result.Failure("Only the owner can resume the game.");
+        }
+
+        if (room.State != GameState.Paused)
+        {
+            _logger.LogWarning("Resume attempt on room {RoomCode} with state {State}", roomCode, room.State);
+            return Result.Failure("Game can only be resumed when paused.");
+        }
+
+        // Obtener tiempo restante (o tiempo completo si no hay tiempo guardado)
+        var timeToResume = room.PausedTimeRemaining ?? _options.QuestionTimeLimit;
+
+        // Limpiar tiempo guardado
+        room.PausedTimeRemaining = null;
+
+        // Cambiar estado a Playing
+        room.State = GameState.Playing;
+
+        _logger.LogInformation("Game resumed in room {RoomCode} by owner {UserId}. Resuming with {TimeRemaining}s",
+            roomCode, userId, timeToResume);
+
+        // Reiniciar temporizador con el tiempo restante
+        StartTurnTimer(roomCode, timeToResume);
+
+        // Broadcast GameResumed
+        await BroadcastGameResumedAsync(roomCode, timeToResume);
+
+        return Result.Success();
+    }
+
+    public async Task<Result<string?>> KickPlayerAsync(string roomCode, long ownerId, long playerIdToKick)
+    {
+        if (!_rooms.TryGetValue(roomCode, out var room))
+        {
+            _logger.LogWarning("Kick attempt on non-existent room: {RoomCode}", roomCode);
+            return Result.Failure<string?>("Room not found.");
+        }
+
+        if (room.OwnerId != ownerId)
+        {
+            _logger.LogWarning("Non-owner {OwnerId} attempted to kick player in room {RoomCode}", ownerId, roomCode);
+            return Result.Failure<string?>("Only the owner can kick players.");
+        }
+
+        if (ownerId == playerIdToKick)
+        {
+            _logger.LogWarning("Owner {OwnerId} attempted to kick themselves in room {RoomCode}", ownerId, roomCode);
+            return Result.Failure<string?>("You cannot kick yourself.");
+        }
+
+        var playerToKick = room.Players.FirstOrDefault(p => p.UserId == playerIdToKick);
+        if (playerToKick == null)
+        {
+            _logger.LogWarning("Player {PlayerIdToKick} not found in room {RoomCode}", playerIdToKick, roomCode);
+            return Result.Failure<string?>("Player not found in this room.");
+        }
+
+        if (playerToKick.IsOwner)
+        {
+            _logger.LogWarning("Attempt to kick owner {PlayerIdToKick} in room {RoomCode}", playerIdToKick, roomCode);
+            return Result.Failure<string?>("The owner cannot be kicked.");
+        }
+
+        // Store connectionId before removing player
+        var connectionIdToRemove = playerToKick.ConnectionId;
+
+        // Remove player from room
+        room.Players.Remove(playerToKick);
+
+        // Remove from user-to-room mapping
+        _userToRoom.TryRemove(playerIdToKick, out _);
+
+        // Remove from connection-to-user mapping if exists
+        if (!string.IsNullOrEmpty(connectionIdToRemove))
+        {
+            _connectionToUser.TryRemove(connectionIdToRemove, out _);
+        }
+
+        _logger.LogInformation("Player {PlayerIdToKick} ({Username}) kicked from room {RoomCode} by owner {OwnerId}",
+            playerIdToKick, playerToKick.Username, roomCode, ownerId);
+
+        return Result.Success<string?>(connectionIdToRemove);
+    }
+
+    private async Task BroadcastGamePausedAsync(string roomCode)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<GameHub>>();
+        var pausedDto = new GamePausedDto(roomCode, DateTime.UtcNow);
+        await hubContext.Clients.Group(roomCode).SendAsync("GamePaused", pausedDto);
+        _logger.LogDebug("Broadcast GamePaused to room {RoomCode}", roomCode);
+    }
+
+    private async Task BroadcastGameResumedAsync(string roomCode, int timeRemaining)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<GameHub>>();
+        var resumedDto = new GameResumedDto(roomCode, timeRemaining);
+        await hubContext.Clients.Group(roomCode).SendAsync("GameResumed", resumedDto);
+        _logger.LogDebug("Broadcast GameResumed to room {RoomCode} with {TimeRemaining}s", roomCode, timeRemaining);
     }
 
     public async Task HandleDisconnectionAsync(string connectionId)
