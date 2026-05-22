@@ -46,4 +46,10 @@ public class User : ITimestamped
     /// </summary>
     [MaxLength(500)]
     public string? ProfilePhotoUrl { get; set; }
+
+    /// <summary>
+    /// Última fecha de inicio de sesión del usuario.
+    /// Se usa para determinar si un usuario está "activo" (últimos 7 días).
+    /// </summary>
+    public DateTime? LastLoginAt { get; set; }
 }

@@ -240,4 +240,75 @@ public class GameHub : Hub
 
         return result;
     }
+
+    /// <summary>
+    /// Pausa el juego. Solo el owner puede pausar.
+    /// </summary>
+    public async Task PauseGame(string roomCode)
+    {
+        var userId = GetAuthenticatedUserId();
+        _logger.LogInformation("User {UserId} attempting to pause game {RoomCode}", userId, roomCode);
+
+        var result = await _gameService.PauseGameAsync(roomCode, userId);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning("Failed to pause game {RoomCode} for user {UserId}: {Error}",
+                roomCode, userId, result.Error);
+            throw new HubException(result.Error);
+        }
+
+        _logger.LogInformation("Game paused in room {RoomCode} by user {UserId}", roomCode, userId);
+    }
+
+    /// <summary>
+    /// Reanuda el juego. Solo el owner puede reanudar.
+    /// </summary>
+    public async Task ResumeGame(string roomCode)
+    {
+        var userId = GetAuthenticatedUserId();
+        _logger.LogInformation("User {UserId} attempting to resume game {RoomCode}", userId, roomCode);
+
+        var result = await _gameService.ResumeGameAsync(roomCode, userId);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning("Failed to resume game {RoomCode} for user {UserId}: {Error}",
+                roomCode, userId, result.Error);
+            throw new HubException(result.Error);
+        }
+
+        _logger.LogInformation("Game resumed in room {RoomCode} by user {UserId}", roomCode, userId);
+    }
+
+    /// <summary>
+    /// Expulsa a un jugador de la sala. Solo el owner puede expulsar.
+    /// </summary>
+    public async Task KickPlayer(string roomCode, long playerIdToKick)
+    {
+        var ownerId = GetAuthenticatedUserId();
+        _logger.LogInformation("Owner {OwnerId} attempting to kick player {PlayerIdToKick} from room {RoomCode}",
+            ownerId, playerIdToKick, roomCode);
+
+        var result = await _gameService.KickPlayerAsync(roomCode, ownerId, playerIdToKick);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning("Failed to kick player {PlayerIdToKick} from room {RoomCode} by owner {OwnerId}: {Error}",
+                playerIdToKick, roomCode, ownerId, result.Error);
+            throw new HubException(result.Error);
+        }
+
+        // Remove kicked player from SignalR group if connectionId was available
+        var connectionIdToRemove = result.Value;
+        if (!string.IsNullOrEmpty(connectionIdToRemove))
+        {
+            // Note: SignalR doesn't provide a direct way to remove a specific connection by id
+            // The client will be notified via PlayerKicked event and should disconnect
+            _logger.LogInformation("Player {PlayerIdToKick} kicked, connectionId: {ConnectionId}",
+                playerIdToKick, connectionIdToRemove);
+        }
+
+        // Broadcast PlayerKicked event to the room
+        await Clients.Group(roomCode).SendAsync("PlayerKicked", playerIdToKick);
+        _logger.LogInformation("Broadcasted PlayerKicked event for player {PlayerIdToKick} in room {RoomCode}",
+            playerIdToKick, roomCode);
+    }
 }
