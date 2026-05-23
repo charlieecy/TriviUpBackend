@@ -43,13 +43,6 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Install reportgenerator
-        uses: danielpalme/reportgenerator-action@v5
-        with:
-          reports: coverage/coverage.cobertura.xml
-          targetdir: coverage-report
-          reporttypes: Html
-
       - name: Run Unit Tests
         run: |
           mkdir -p UnitTestResults coverage
@@ -66,6 +59,12 @@ jobs:
           else
             echo "No se encontró ningún proyecto de tests unitarios (*Test*.csproj). Puedes actualizar la ruta estáticamente en ci.yml."
           fi
+
+      - name: Install reportgenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate HTML coverage report
+        run: reportgenerator "-reports:coverage/coverage.cobertura.xml" "-targetdir:coverage-report" -reporttypes:Html
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
