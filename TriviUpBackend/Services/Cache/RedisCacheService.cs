@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
+using System.Text;
 using System.Text.Json;
 
 namespace TriviUpBackend.Services.Cache;
@@ -15,17 +16,19 @@ public class RedisCacheService : ICacheService
         _logger = logger;
     }
 
-    public async Task<T?> GetAsync<T>(string key)
+    public async Task<T> GetAsync<T>(string key)
     {
         try
         {
-            var data = await _cache.GetStringAsync(key);
-            return data is null ? default : JsonSerializer.Deserialize<T>(data);
+            var encoded = await _cache.GetAsync(key);
+            if (encoded == null) return default!;
+            var data = Encoding.UTF8.GetString(encoded);
+            return JsonSerializer.Deserialize<T>(data)!;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Cache get failed for key {Key}", key);
-            return default;
+            return default!;
         }
     }
 
@@ -34,8 +37,9 @@ public class RedisCacheService : ICacheService
         try
         {
             var data = JsonSerializer.Serialize(value);
+            var encoded = Encoding.UTF8.GetBytes(data);
             var options = new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiry };
-            await _cache.SetStringAsync(key, data, options);
+            await _cache.SetAsync(key, encoded, options);
         }
         catch (Exception ex)
         {

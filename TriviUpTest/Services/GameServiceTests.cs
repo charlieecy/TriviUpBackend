@@ -6,6 +6,7 @@ using TriviUpBackend.Game.Services;
 using TriviUpBackend.Game.Configuration;
 using TriviUpBackend.Game.Models;
 using TriviUpBackend.Game.DTOs;
+using TriviUpBackend.Game.Hubs;
 using TriviUpBackend.Cuestionarios.Repositories;
 using TriviUpBackend.Cuestionarios.Entities;
 using Microsoft.AspNetCore.SignalR;
@@ -23,14 +24,14 @@ public class GameServiceTests
     private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
     private readonly GameOptions _options;
     private readonly GameService _service;
-    private readonly Mock<IHubContext> _mockHubContext;
+    private readonly Mock<IHubContext<GameHub>> _mockHubContext;
 
     public GameServiceTests()
     {
         _mockTurnManager = new Mock<ITurnManager>();
         _mockLogger = new Mock<ILogger<GameService>>();
         _mockScopeFactory = new Mock<IServiceScopeFactory>();
-        _mockHubContext = new Mock<IHubContext>();
+        _mockHubContext = new Mock<IHubContext<GameHub>>();
         _options = new GameOptions
         {
             MaxPlayersPerRoom = 10,
@@ -90,7 +91,22 @@ public class GameServiceTests
         var mockScope = new Mock<IServiceScope>();
         var mockServiceProvider = new Mock<IServiceProvider>();
         var mockQuizRepository = new Mock<IQuizRepository>();
-        mockQuizRepository.Setup(r => r.FindByIdAsync(quizId)).ReturnsAsync((Quiz?)null);
+        mockQuizRepository.Setup(r => r.FindByIdAsync(quizId)).ReturnsAsync(new Quiz { Id = quizId, Nombre = "Test Quiz" });
+        mockQuizRepository.Setup(r => r.GetQuestionsWithAnswersAsync(quizId)).ReturnsAsync(new List<Pregunta>
+        {
+            new()
+            {
+                Id = 1,
+                QuizId = quizId,
+                NumeroPregunta = 1,
+                Enunciado = "Test question",
+                Respuestas = new List<Respuesta>
+                {
+                    new() { Id = 1, Texto = "Answer A", EsCorrecta = true },
+                    new() { Id = 2, Texto = "Answer B", EsCorrecta = false }
+                }
+            }
+        });
         mockServiceProvider.Setup(sp => sp.GetService(typeof(IQuizRepository))).Returns(mockQuizRepository.Object);
         mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
         _mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
@@ -345,9 +361,9 @@ public class GameServiceTests
         // Act
         var result = await _service.SubmitAnswerAsync(roomCode, playerId, questionId, 0, 15);
 
-        // Assert - result depends on mock setup
-        // This test verifies the method doesn't throw
-        Assert.Null(result); // Will be null if TurnManager isn't properly mocked for this scenario
+        // Assert - result is returned (not null) since the method now runs properly with the mock setup
+        Assert.NotNull(result);
+        Assert.Equal(playerId, result.PlayerId);
     }
 
     [Fact]
@@ -688,7 +704,30 @@ public class GameServiceTests
         var mockServiceProvider = new Mock<IServiceProvider>();
         var mockQuizRepository = new Mock<IQuizRepository>();
         mockQuizRepository.Setup(r => r.FindByIdAsync(quizId)).ReturnsAsync(new Quiz { Id = quizId, Nombre = "Test Quiz" });
+        mockQuizRepository.Setup(r => r.GetQuestionsWithAnswersAsync(quizId)).ReturnsAsync(new List<Pregunta>
+        {
+            new()
+            {
+                Id = 1,
+                QuizId = quizId,
+                NumeroPregunta = 1,
+                Enunciado = "Test question",
+                Respuestas = new List<Respuesta>
+                {
+                    new() { Id = 1, Texto = "Answer A", EsCorrecta = true },
+                    new() { Id = 2, Texto = "Answer B", EsCorrecta = false }
+                }
+            }
+        });
+
+        // Setup IHubContext mock with Clients property
+        var mockHubClients = new Mock<IHubClients>();
+        var mockClientProxy = new Mock<IClientProxy>();
+        mockHubClients.Setup(c => c.Group(It.IsAny<string>())).Returns(mockClientProxy.Object);
+        _mockHubContext.Setup(h => h.Clients).Returns(mockHubClients.Object);
+
         mockServiceProvider.Setup(sp => sp.GetService(typeof(IQuizRepository))).Returns(mockQuizRepository.Object);
+        mockServiceProvider.Setup(sp => sp.GetService(typeof(IHubContext<GameHub>))).Returns(_mockHubContext.Object);
         mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
         _mockScopeFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
 
