@@ -77,8 +77,9 @@ jobs:
       - name: Restore & Build backend
         run: |
           if [ -d "TriviUpBackend" ]; then
-            dotnet restore TriviUpBackend/TriviUpBackend.csproj
-            dotnet build TriviUpBackend/TriviUpBackend.csproj --configuration Release
+            dotnet nuget locals all --clear
+            dotnet restore TriviUpBackend/TriviUpBackend.csproj --force
+            dotnet build TriviUpBackend/TriviUpBackend.csproj --configuration Release --no-restore
           fi
 
       - name: Install Node.js
