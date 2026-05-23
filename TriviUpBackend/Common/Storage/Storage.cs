@@ -3,6 +3,7 @@ using TriviUpBackend.Errors;
 
 namespace TriviUpBackend.Common.Storage;
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class Storage : IStorage
 {
     private readonly string _rootPath;

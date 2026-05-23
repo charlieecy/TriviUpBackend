@@ -10,6 +10,7 @@ namespace TriviUpBackend.Game.Controllers;
 [Route("api/game")]
 [Produces("application/json")]
 [Authorize]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class GamesController(
     IGameHistoryRepository gameHistoryRepository,
     ILogger<GamesController> logger

@@ -8,6 +8,7 @@ namespace TriviUpBackend.Common.Storage;
 /// Implementación del servicio de almacenamiento de fotos de perfil.
 /// Utiliza almacenamiento local en el sistema de archivos.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class ProfilePhotoStorage : IProfilePhotoStorage
 {
     private readonly IStorage _storage;

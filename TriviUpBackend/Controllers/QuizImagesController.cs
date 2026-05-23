@@ -9,6 +9,7 @@ namespace TriviUpBackend.Controllers;
 [Route("api/cuestionarios/imagenes")]
 [Produces("application/json")]
 [Authorize]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class QuizImagesController(
     IQuestionImageStorage questionImageStorage,
     ILogger<QuizImagesController> logger

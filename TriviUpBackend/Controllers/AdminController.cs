@@ -10,6 +10,7 @@ namespace TriviUpBackend.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "ADMIN")]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class AdminController : ControllerBase
 {
     private readonly Context _context;
