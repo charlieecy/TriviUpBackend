@@ -20,10 +20,9 @@ public static class CorsConfig
             }
             else
             {
-                // Leer directamente de environment variable (Railway mapea Cors__AllowedOrigins a Cors:AllowedOrigins)
-                var allowedOriginsString = Environment.GetEnvironmentVariable("Cors__AllowedOrigins")
-                    ?? Environment.GetEnvironmentVariable("Cors:AllowedOrigins")
-                    ?? throw new InvalidOperationException("Cors:AllowedOrigins no configurado");
+                // Leer directamente de environment variable
+                var allowedOriginsString = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")
+                    ?? throw new InvalidOperationException("ALLOWED_ORIGINS no configurado");
 
                 var allowedOrigins = allowedOriginsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => s.Trim())
