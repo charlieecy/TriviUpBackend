@@ -4,12 +4,13 @@ using TriviUpBackend.Cuestionarios.Repositories;
 using TriviUpBackend.Cuestionarios.Services;
 using TriviUpBackend.Common.Storage;
 using TriviUpBackend.Game.Repositories;
+using TriviUpBackend.Services.Cache;
 
 namespace TriviUpBackend.Infrastructure;
 
 public static class DependencyInjectionConfig
 {
-    public static IServiceCollection AddRepositoriesAndServices(this IServiceCollection services)
+    public static IServiceCollection AddRepositoriesAndServices(this IServiceCollection services, IConfiguration configuration)
     {
         // Repositorios
         //services.AddScoped<IFunkoRepository, FunkoRepository>();
@@ -30,6 +31,16 @@ public static class DependencyInjectionConfig
         services.AddScoped<IStorage, Storage>();
         services.AddScoped<IProfilePhotoStorage, ProfilePhotoStorage>();
         services.AddScoped<IQuestionImageStorage, QuestionImageStorage>();
+
+        // Cache
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration.GetConnectionString("Redis")
+                ?? configuration["Redis:ConnectionString"]
+                ?? "localhost:6379";
+            options.InstanceName = "TriviUp:";
+        });
+        services.AddScoped<ICacheService, RedisCacheService>();
 
         // Eventos
         //services.AddScoped<IEventPublisher, EventPublisher>();

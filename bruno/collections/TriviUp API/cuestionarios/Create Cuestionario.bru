@@ -1,0 +1,29 @@
+meta {
+  name: Create Cuestionario
+  type: http
+  seq: 3
+}
+
+post {{baseUrl}}/api/cuestionarios {
+  headers {
+    Authorization: "Bearer {{token}}"
+  }
+
+  body: {
+    nombre: "Test Quiz",
+    esPublico: true,
+    preguntas: [
+      {
+        enunciado: "¿Cuál es la capital de España?",
+        respuestas: [
+          { texto: "Madrid", esCorrecta: true },
+          { texto: "Barcelona", esCorrecta: false }
+        ]
+      }
+    ]
+  }
+
+  response: {
+    status: 201
+  }
+}

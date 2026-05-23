@@ -3,15 +3,18 @@ using TriviUpBackend.Cuestionarios.DTOs;
 using TriviUpBackend.Cuestionarios.Entities;
 using TriviUpBackend.Cuestionarios.Repositories;
 using TriviUpBackend.Errors;
+using TriviUpBackend.Services.Cache;
 
 namespace TriviUpBackend.Cuestionarios.Services;
 
 public class QuizService(
     IQuizRepository quizRepository,
-    ILogger<QuizService> logger
+    ILogger<QuizService> logger,
+    ICacheService cacheService
 ) : IQuizService
 {
     private static readonly Random _random = new();
+    private static readonly TimeSpan DefaultCacheDuration = TimeSpan.FromMinutes(5);
 
     public async Task<Result<QuizResponse, QuizError>> CreateAsync(CreateQuizRequest request, long creatorId)
     {
@@ -53,6 +56,9 @@ public class QuizService(
             return Result.Failure<QuizResponse, QuizError>(new QuizNotFoundError("Quiz no encontrado después de crear"));
         }
 
+        // Invalidate public quizzes cache
+        await cacheService.RemoveByPrefixAsync("quizzes:public:");
+
         logger.LogInformation("Quiz creado exitosamente con ID: {Id}, GameCode: {GameCode}", savedQuiz.Id, savedQuiz.GameCode);
 
         return Result.Success<QuizResponse, QuizError>(QuizResponse.FromEntity(quizWithQuestions));
@@ -62,6 +68,14 @@ public class QuizService(
     {
         logger.LogInformation("Obteniendo quiz por ID: {Id}", id);
 
+        var cacheKey = $"quiz:{id}";
+        var cached = await cacheService.GetAsync<QuizResponse>(cacheKey);
+        if (cached is not null)
+        {
+            logger.LogDebug("Cache hit for quiz {Id}", id);
+            return Result.Success<QuizResponse, QuizError>(cached);
+        }
+
         var quiz = await quizRepository.FindByIdWithQuestionsAsync(id);
         if (quiz == null)
         {
@@ -69,7 +83,10 @@ public class QuizService(
             return Result.Failure<QuizResponse, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado"));
         }
 
-        return Result.Success<QuizResponse, QuizError>(QuizResponse.FromEntity(quiz));
+        var response = QuizResponse.FromEntity(quiz);
+        await cacheService.SetAsync(cacheKey, response, DefaultCacheDuration);
+
+        return Result.Success<QuizResponse, QuizError>(response);
     }
 
     public async Task<Result<QuizResponse, QuizError>> GetByGameCodeAsync(string gameCode)
@@ -189,6 +206,10 @@ public class QuizService(
             return Result.Failure<QuizResponse, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado después de actualizar"));
         }
 
+        // Invalidate caches
+        await cacheService.RemoveAsync($"quiz:{id}");
+        await cacheService.RemoveByPrefixAsync("quizzes:public:");
+
         logger.LogInformation("Quiz {Id} actualizado exitosamente", id);
 
         return Result.Success<QuizResponse, QuizError>(QuizResponse.FromEntity(updatedQuiz));
@@ -211,6 +232,11 @@ public class QuizService(
         }
 
         await quizRepository.DeleteAsync(id);
+
+        // Invalidate caches
+        await cacheService.RemoveAsync($"quiz:{id}");
+        await cacheService.RemoveByPrefixAsync("quizzes:public:");
+
         logger.LogInformation("Quiz {Id} eliminado exitosamente", id);
 
         return UnitResult.Success<QuizError>();
@@ -221,14 +247,25 @@ public class QuizService(
         logger.LogInformation("Obteniendo quizzes públicos - Search: {Search}, Page: {Page}, PageSize: {PageSize}",
             search, page, pageSize);
 
+        var cacheKey = $"quizzes:public:{search ?? ""}:{page}:{pageSize}";
+        var cached = await cacheService.GetAsync<(List<PublicQuizResponse> Quizzes, int TotalCount)>(cacheKey);
+        if (cached is not null)
+        {
+            logger.LogDebug("Cache hit for public quizzes with key {CacheKey}", cacheKey);
+            return Result.Success<(List<PublicQuizResponse>, int), QuizError>(cached);
+        }
+
         var quizzes = await quizRepository.FindPublicQuizzesAsync(search, page, pageSize);
         var totalCount = await quizRepository.GetPublicQuizzesCountAsync(search);
 
         var publicQuizResponses = quizzes.Select(PublicQuizResponse.FromEntity).ToList();
+        var result = (publicQuizResponses, totalCount);
+
+        await cacheService.SetAsync(cacheKey, result, DefaultCacheDuration);
 
         logger.LogInformation("Se encontraron {Count} quizzes públicos de {Total} total", publicQuizResponses.Count, totalCount);
 
-        return Result.Success<(List<PublicQuizResponse>, int), QuizError>((publicQuizResponses, totalCount));
+        return Result.Success<(List<PublicQuizResponse>, int), QuizError>(result);
     }
 
     public async Task<Result<int, QuizError>> IncrementLikesAsync(long id)

@@ -18,7 +18,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddDatabase(builder.Configuration);
 
 // Repositorios y Servicios de Aplicación
-builder.Services.AddRepositoriesAndServices();
+builder.Services.AddRepositoriesAndServices(builder.Configuration);
 
 // Autenticación y Autorización (JWT)
 builder.Services.AddAuthentication(builder.Configuration);
