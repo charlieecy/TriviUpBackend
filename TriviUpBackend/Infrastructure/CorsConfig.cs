@@ -20,8 +20,16 @@ public static class CorsConfig
             }
             else
             {
-                var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                                     ?? throw new InvalidOperationException("Cors:AllowedOrigins no configurado");
+                // Leer como string separado por comas: "url1,url2,url3"
+                var allowedOriginsString = configuration["Cors:AllowedOrigins"]
+                    ?? throw new InvalidOperationException("Cors:AllowedOrigins no configurado");
+
+                var allowedOrigins = allowedOriginsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .ToArray();
+
+                if (allowedOrigins.Length == 0)
+                    throw new InvalidOperationException("Cors:AllowedOrigins no puede estar vacío");
 
                 options.AddPolicy("ProductionPolicy", policy =>
                 {
