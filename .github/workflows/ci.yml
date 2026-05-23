@@ -46,7 +46,6 @@ jobs:
       - name: Run Unit Tests
         run: |
           mkdir -p UnitTestResults coverage
-          # Asegúrate de cambiar "TriviUpBackend.Tests/TriviUpBackend.Tests.csproj" por la ruta real de tu proyecto de tests
           TEST_PROJECT=$(find . -name "*Test*.csproj" | head -n 1)
           if [ -n "$TEST_PROJECT" ]; then
             echo "Ejecutando tests unitarios en: $TEST_PROJECT"
@@ -54,17 +53,17 @@ jobs:
               --configuration Release \
               --logger "trx;LogFileName=$(pwd)/UnitTestResults/UnitTestResults.trx" \
               /p:CollectCoverage=true \
-              /p:CoverletOutput=./coverage/ \
+              /p:CoverletOutput="$(pwd)/coverage/" \
               /p:CoverletOutputFormat=cobertura
           else
-            echo "No se encontró ningún proyecto de tests unitarios (*Test*.csproj). Puedes actualizar la ruta estáticamente en ci.yml."
+            echo "No se encontró ningún proyecto de tests unitarios (*Test*.csproj)."
           fi
 
       - name: Install reportgenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
       - name: Generate HTML coverage report
-        run: reportgenerator "-reports:coverage/coverage.cobertura.xml" "-targetdir:coverage-report" -reporttypes:Html
+        run: reportgenerator "-reports:$(pwd)/coverage/coverage.cobertura.xml" "-targetdir:$(pwd)/coverage-report" -reporttypes:Html
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
