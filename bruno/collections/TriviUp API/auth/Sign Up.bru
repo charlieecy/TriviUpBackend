@@ -1,0 +1,20 @@
+meta {
+  name: Sign Up
+  type: http
+  seq: 1
+}
+
+post {{baseUrl}}/auth/signup {
+  body: {
+    username: "testuser",
+    email: "test@example.com",
+    password: "test1234"
+  }
+
+  response: {
+    status: 201
+    body: {
+      token: "{{token}}"
+    }
+  }
+}
