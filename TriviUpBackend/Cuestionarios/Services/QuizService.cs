@@ -48,7 +48,17 @@ public class QuizService(
             }).ToList()
         };
 
-        var savedQuiz = await quizRepository.SaveAsync(quiz);
+        Quiz savedQuiz;
+        try
+        {
+            savedQuiz = await quizRepository.SaveAsync(quiz);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error saving quiz for user {CreatorId}", creatorId);
+            return Result.Failure<QuizResponse, QuizError>(new QuizValidationError("Error al guardar el quiz"));
+        }
+
         var quizWithQuestions = await quizRepository.FindByIdWithQuestionsAsync(savedQuiz.Id);
 
         if (quizWithQuestions == null)
@@ -248,11 +258,12 @@ public class QuizService(
             search, page, pageSize);
 
         var cacheKey = $"quizzes:public:{search ?? ""}:{page}:{pageSize}";
-        var cached = await cacheService.GetAsync<(List<PublicQuizResponse> Quizzes, int TotalCount)>(cacheKey);
-        if (cached is not null)
+        var cached = await cacheService.GetAsync<(List<PublicQuizResponse>? Quizzes, int TotalCount)?>(cacheKey);
+        if (cached.HasValue && cached.Value.Quizzes != null)
         {
             logger.LogDebug("Cache hit for public quizzes with key {CacheKey}", cacheKey);
-            return Result.Success<(List<PublicQuizResponse>, int), QuizError>(cached);
+            var (cachedQuizzes, cachedTotal) = cached.Value;
+            return Result.Success<(List<PublicQuizResponse>, int), QuizError>((cachedQuizzes!, cachedTotal));
         }
 
         var quizzes = await quizRepository.FindPublicQuizzesAsync(search, page, pageSize);

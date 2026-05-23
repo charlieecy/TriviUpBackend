@@ -253,8 +253,8 @@ public class QuizServiceTests
             CreateSampleQuiz(1, "Public Quiz 1"),
             CreateSampleQuiz(2, "Public Quiz 2")
         };
-        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>, int)>(It.IsAny<string>()))
-            .ReturnsAsync((?(List<PublicQuizResponse>, int))null);
+        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>?, int)?>(It.IsAny<string>()))
+            .ReturnsAsync(((List<PublicQuizResponse>?, int)?)null);
         _mockRepo.Setup(r => r.FindPublicQuizzesAsync(null, 1, 10)).ReturnsAsync(quizzes);
         _mockRepo.Setup(r => r.GetPublicQuizzesCountAsync(null)).ReturnsAsync(2);
 
@@ -270,8 +270,9 @@ public class QuizServiceTests
     public async Task GetPublicQuizzesAsync_CacheHit_ReturnsCachedResults()
     {
         // Arrange
-        var cached = (new List<PublicQuizResponse>(), 5);
-        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>, int)>(It.IsAny<string>()))
+        var cachedList = new List<PublicQuizResponse> { new PublicQuizResponse { Id = 1, Titulo = "Test" } };
+        var cached = (cachedList, 5);
+        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>?, int)?>(It.IsAny<string>()))
             .ReturnsAsync(cached);
 
         // Act
@@ -287,8 +288,8 @@ public class QuizServiceTests
     public async Task GetPublicQuizzesAsync_EmptyResults_ReturnsZeroCount()
     {
         // Arrange
-        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>, int)>(It.IsAny<string>()))
-            .ReturnsAsync((?(List<PublicQuizResponse>, int))null);
+        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>?, int)?>(It.IsAny<string>()))
+            .ReturnsAsync(((List<PublicQuizResponse>?, int)?)null);
         _mockRepo.Setup(r => r.FindPublicQuizzesAsync(null, 1, 10)).ReturnsAsync(new List<Quiz>());
         _mockRepo.Setup(r => r.GetPublicQuizzesCountAsync(null)).ReturnsAsync(0);
 
@@ -305,8 +306,8 @@ public class QuizServiceTests
     {
         // Arrange
         var search = "test";
-        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>, int)>(It.IsAny<string>()))
-            .ReturnsAsync((?(List<PublicQuizResponse>, int))null);
+        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>?, int)?>(It.IsAny<string>()))
+            .ReturnsAsync(((List<PublicQuizResponse>?, int)?)null);
         _mockRepo.Setup(r => r.FindPublicQuizzesAsync(search, 1, 10)).ReturnsAsync(new List<Quiz>());
         _mockRepo.Setup(r => r.GetPublicQuizzesCountAsync(search)).ReturnsAsync(0);
 
@@ -574,7 +575,7 @@ public class QuizServiceTests
         updatedQuiz.CreatorId = 1L;
 
         _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(quizId)).ReturnsAsync(quiz);
-        _mockRepo.Setup(r => r.UpdateAsync(It.IsAny<Quiz>())).Returns(Task.CompletedTask);
+        _mockRepo.Setup(r => r.UpdateAsync(It.IsAny<Quiz>())).Returns(Task.FromResult<Quiz>(null!));
         _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(quizId)).ReturnsAsync(updatedQuiz);
 
         // Act
@@ -619,7 +620,7 @@ public class QuizServiceTests
 
         _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(quizId))
             .ReturnsAsync(quiz); // First call returns quiz
-        _mockRepo.Setup(r => r.UpdateAsync(It.IsAny<Quiz>())).Returns(Task.CompletedTask);
+        _mockRepo.Setup(r => r.UpdateAsync(It.IsAny<Quiz>())).Returns(Task.FromResult<Quiz>(null!));
         // Second call (after update) returns null
         _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(quizId))
             .ReturnsAsync((Quiz?)null);
@@ -645,7 +646,7 @@ public class QuizServiceTests
         updatedQuiz.CreatorId = 1L;
 
         _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(quizId)).ReturnsAsync(quiz);
-        _mockRepo.Setup(r => r.UpdateAsync(It.IsAny<Quiz>())).Returns(Task.CompletedTask);
+        _mockRepo.Setup(r => r.UpdateAsync(It.IsAny<Quiz>())).Returns(Task.FromResult<Quiz>(null!));
         _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(quizId)).ReturnsAsync(updatedQuiz);
 
         // Act
@@ -698,7 +699,7 @@ public class QuizServiceTests
         var quiz = CreateSampleQuiz(quizId, "Test Quiz");
         quiz.CreatorId = 1L;
         _mockRepo.Setup(r => r.FindByIdAsync(quizId)).ReturnsAsync(quiz);
-        _mockRepo.Setup(r => r.DeleteAsync(quizId)).Returns(Task.CompletedTask);
+        _mockRepo.Setup(r => r.DeleteAsync(quizId)).Returns(Task.FromResult<Quiz>(null!));
 
         // Act
         var result = await _service.DeleteAsync(quizId, userId: 1L);
@@ -716,7 +717,7 @@ public class QuizServiceTests
         var quiz = CreateSampleQuiz(quizId, "Test Quiz");
         quiz.CreatorId = 1L;
         _mockRepo.Setup(r => r.FindByIdAsync(quizId)).ReturnsAsync(quiz);
-        _mockRepo.Setup(r => r.DeleteAsync(quizId)).Returns(Task.CompletedTask);
+        _mockRepo.Setup(r => r.DeleteAsync(quizId)).Returns(Task.FromResult<Quiz>(null!));
 
         // Act
         await _service.DeleteAsync(quizId, userId: 1L);
