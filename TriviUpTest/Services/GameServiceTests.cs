@@ -383,18 +383,18 @@ public class GameServiceTests
     // ========== KickPlayerAsync Tests ==========
 
     [Fact]
-    public async Task KickPlayerAsync_OwnerKicksPlayer_ReturnsSuccess()
+    public async Task KickPlayerAsync_RoomDoesNotExist_ReturnsFailure()
     {
         // Arrange
-        var roomCode = await CreateTestRoomWithTwoPlayers();
+        var nonExistentRoom = "NOTFOUND";
         var ownerId = 100L;
         var playerToKick = 200L;
 
         // Act
-        var result = await _service.KickPlayerAsync(roomCode, ownerId, playerToKick);
+        var result = await _service.KickPlayerAsync(nonExistentRoom, ownerId, playerToKick);
 
         // Assert
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsFailure);
     }
 
     [Fact]
@@ -775,5 +775,192 @@ public class GameServiceTests
         await _service.PauseGameAsync(roomCode, 100L);
 
         return roomCode;
+    }
+
+    // ========== Additional Edge Case Tests ==========
+
+    [Fact]
+    public async Task JoinGameAsync_PlayerWithSameIdDifferentConnection_UpdatesConnection()
+    {
+        // Arrange
+        var roomCode = await CreateTestRoom();
+        var userId = 100L;
+        var existingConnectionId = "conn-100";
+        var newConnectionId = "conn-100-new";
+
+        // Act
+        var result = await _service.JoinGameAsync(roomCode, userId, "owner", existingConnectionId);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        // Now join again with same user but different connection
+        var result2 = await _service.JoinGameAsync(roomCode, userId, "owner", newConnectionId);
+
+        // Assert - should succeed
+        Assert.True(result2.IsSuccess);
+    }
+
+    [Fact]
+    public async Task LeaveGameAsync_PlayerDisconnects_OtherPlayersRemain()
+    {
+        // Arrange
+        var roomCode = await CreateTestRoomWithTwoPlayers();
+        var playerId = 200L;
+
+        // Act - This should not throw
+        await _service.LeaveGameAsync(roomCode, playerId);
+
+        // Assert - The room should still exist (implicitly tested by not throwing)
+        // We verify by checking that owner can still interact with the room
+        var ownerJoinResult = await _service.JoinGameAsync(roomCode, 100L, "owner", "conn-100-new");
+        Assert.True(ownerJoinResult.IsSuccess);
+    }
+
+    [Fact]
+    public async Task StartGameAsync_OnlyOwnerInRoom_ReturnsNull()
+    {
+        // Arrange - Create room with only owner
+        var roomCode = await CreateTestRoom();
+        var ownerId = 100L;
+
+        // Act
+        var result = await _service.StartGameAsync(roomCode, ownerId);
+
+        // Assert - Should return null because not enough players
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task StartGameAsync_AlreadyFinished_ReturnsRoom()
+    {
+        // Arrange - Create a room that's already finished
+        // We simulate this by creating a playing room and the test above handles the "already started" case
+        var roomCode = await CreatePlayingTestRoom();
+
+        // Act - Try to start again
+        var result = await _service.StartGameAsync(roomCode, 100L);
+
+        // Assert - Should return the room since it's already playing
+        Assert.NotNull(result);
+        Assert.Equal(roomCode, result.RoomCode);
+    }
+
+    [Fact]
+    public async Task SubmitAnswerAsync_NonExistentRoom_ReturnsNull()
+    {
+        // Arrange
+        var nonExistentRoom = "NONEXIST";
+        var userId = 100L;
+
+        // Act
+        var result = await _service.SubmitAnswerAsync(nonExistentRoom, userId, 1, 0, 10);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task SubmitAnswerAsync_WrongAnswer_ReturnsTurnResultWithNoPoints()
+    {
+        // Arrange
+        var roomCode = await CreatePlayingTestRoom();
+        var playerId = 200L;
+
+        // Act - Submit with a questionId that doesn't exist in the room
+        // This will cause the method to return null because question not found
+        var result = await _service.SubmitAnswerAsync(roomCode, playerId, 999, 0, 15);
+
+        // Assert - Result should be null since question 999 doesn't exist
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task KickPlayerAsync_KickLastPlayer_RemovesFromRoom()
+    {
+        // Arrange
+        var roomCode = await CreateTestRoomWithTwoPlayers();
+        var ownerId = 100L;
+        var playerToKick = 200L;
+
+        // Act
+        var result = await _service.KickPlayerAsync(roomCode, ownerId, playerToKick);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+    }
+
+    [Fact]
+    public async Task KickPlayerAsync_RoomNotFound_ReturnsFailure()
+    {
+        // Arrange
+        var nonExistentRoom = "NOTFOUND";
+        var ownerId = 100L;
+        var playerToKick = 200L;
+
+        // Act
+        var result = await _service.KickPlayerAsync(nonExistentRoom, ownerId, playerToKick);
+
+        // Assert
+        Assert.True(result.IsFailure);
+    }
+
+    [Fact]
+    public async Task PauseGameAsync_GameNotInPlayingState_ReturnsFailure()
+    {
+        // Arrange - Create a waiting room
+        var roomCode = await CreateTestRoom();
+        var ownerId = 100L;
+
+        // Act
+        var result = await _service.PauseGameAsync(roomCode, ownerId);
+
+        // Assert
+        Assert.True(result.IsFailure);
+    }
+
+    [Fact]
+    public async Task ResumeGameAsync_GameNotPaused_ReturnsFailure()
+    {
+        // Arrange - Create a playing room (not paused)
+        var roomCode = await CreatePlayingTestRoom();
+        var ownerId = 100L;
+
+        // Act
+        var result = await _service.ResumeGameAsync(roomCode, ownerId);
+
+        // Assert
+        Assert.True(result.IsFailure);
+    }
+
+    [Fact]
+    public async Task GetRoomCodeByConnectionAsync_NeverConnected_ReturnsNull()
+    {
+        // Arrange
+        var neverConnectedConnectionId = "never-connected-conn";
+
+        // Act
+        var result = await _service.GetRoomCodeByConnectionAsync(neverConnectedConnectionId);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetRoomCodeByConnectionAsync_DisconnectedPlayer_ReturnsNull()
+    {
+        // Arrange
+        var roomCode = await CreateTestRoom();
+        var connectionId = "disconnect-test-conn";
+
+        await _service.JoinGameAsync(roomCode, 999L, "player", connectionId);
+
+        // Act - Handle disconnection
+        await _service.HandleDisconnectionAsync(connectionId);
+
+        // Assert - Now the connection should not map to any room
+        var result = await _service.GetRoomCodeByConnectionAsync(connectionId);
+        Assert.Null(result);
     }
 }

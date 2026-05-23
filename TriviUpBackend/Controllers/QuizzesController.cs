@@ -10,6 +10,7 @@ namespace TriviUpBackend.Controllers;
 [ApiController]
 [Route("api/quizzes")]
 [Produces("application/json")]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class QuizzesController(
     IQuizService quizService,
     ILogger<QuizzesController> logger

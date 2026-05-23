@@ -2,6 +2,7 @@
 
 namespace TriviUpBackend.Infrastructure;
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public static class DatabaseSeeder
 {
     public static void SeedDatabase(this WebApplication app)

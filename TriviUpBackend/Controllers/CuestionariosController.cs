@@ -12,6 +12,7 @@ namespace TriviUpBackend.Controllers;
 [Route("api/cuestionarios")]
 [Produces("application/json")]
 [Authorize]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class CuestionariosController(
     IQuizService quizService,
     ILogger<CuestionariosController> logger

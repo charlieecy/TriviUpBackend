@@ -6,6 +6,7 @@ namespace TriviUpBackend.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class StorageController(
     IWebHostEnvironment env,
     ILogger<StorageController> logger

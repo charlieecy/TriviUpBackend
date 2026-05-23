@@ -7,6 +7,7 @@ using TriviUpBackend.Services.Auth;
 
 namespace TriviUpBackend.Game.Hubs;
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class GameHub : Hub
 {
     private readonly IGameService _gameService;

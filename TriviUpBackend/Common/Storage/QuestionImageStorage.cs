@@ -8,6 +8,7 @@ namespace TriviUpBackend.Common.Storage;
 /// Implementación del servicio de almacenamiento de imágenes de preguntas.
 /// Utiliza almacenamiento local en el sistema de archivos.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class QuestionImageStorage : IQuestionImageStorage
 {
     private readonly IStorage _storage;

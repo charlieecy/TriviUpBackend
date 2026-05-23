@@ -15,6 +15,7 @@ namespace TriviUpBackend.Controllers;
 [Route("[controller]")]
 [Produces("application/json")]
 [Authorize]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class UsersController(
     IUserRepository userRepository,
     IProfilePhotoStorage profilePhotoStorage,

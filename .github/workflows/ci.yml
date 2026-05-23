@@ -37,25 +37,42 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-          
+
+      - name: Install reportgenerator
+        uses: danielpalme/reportgenerator-action@v5
+        with:
+          reports: coverage/coverage.cobertura.xml
+          targetdir: coverage-report
+          reporttypes: Html
+
       - name: Run Unit Tests
         run: |
-          mkdir -p UnitTestResults
+          mkdir -p UnitTestResults coverage
           # Asegúrate de cambiar "TriviUpBackend.Tests/TriviUpBackend.Tests.csproj" por la ruta real de tu proyecto de tests
           TEST_PROJECT=$(find . -name "*Test*.csproj" | head -n 1)
           if [ -n "$TEST_PROJECT" ]; then
             echo "Ejecutando tests unitarios en: $TEST_PROJECT"
             dotnet test $TEST_PROJECT \
               --configuration Release \
-              --logger "trx;LogFileName=$(pwd)/UnitTestResults/UnitTestResults.trx"
+              --logger "trx;LogFileName=$(pwd)/UnitTestResults/UnitTestResults.trx" \
+              /p:CollectCoverage=true \
+              /p:CoverletOutput=./coverage/ \
+              /p:CoverletOutputFormat=cobertura
           else
             echo "No se encontró ningún proyecto de tests unitarios (*Test*.csproj). Puedes actualizar la ruta estáticamente en ci.yml."
           fi
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report/
+          retention-days: 30
 
   bruno-tests:
     name: Bruno API Tests
