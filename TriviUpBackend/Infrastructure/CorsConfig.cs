@@ -20,8 +20,9 @@ public static class CorsConfig
             }
             else
             {
-                // Leer como string separado por comas: "url1,url2,url3"
-                var allowedOriginsString = configuration["Cors:AllowedOrigins"]
+                // Leer directamente de environment variable (Railway mapea Cors__AllowedOrigins a Cors:AllowedOrigins)
+                var allowedOriginsString = Environment.GetEnvironmentVariable("Cors__AllowedOrigins")
+                    ?? Environment.GetEnvironmentVariable("Cors:AllowedOrigins")
                     ?? throw new InvalidOperationException("Cors:AllowedOrigins no configurado");
 
                 var allowedOrigins = allowedOriginsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
