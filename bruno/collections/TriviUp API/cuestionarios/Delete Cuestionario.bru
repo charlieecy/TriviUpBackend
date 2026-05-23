@@ -1,0 +1,15 @@
+meta {
+  name: Delete Cuestionario
+  type: http
+  seq: 4
+}
+
+delete {{baseUrl}}/api/cuestionarios/:id {
+  headers {
+    Authorization: "Bearer {{token}}"
+  }
+
+  response: {
+    status: 204
+  }
+}

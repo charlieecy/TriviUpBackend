@@ -1,0 +1,15 @@
+meta {
+  name: Get Cuestionario
+  type: http
+  seq: 2
+}
+
+get {{baseUrl}}/api/cuestionarios/:id {
+  headers {
+    Authorization: "Bearer {{token}}"
+  }
+
+  response: {
+    status: 200
+  }
+}

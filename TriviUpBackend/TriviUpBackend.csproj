@@ -20,6 +20,8 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
         <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+        <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
     </ItemGroup>
 
 </Project>
