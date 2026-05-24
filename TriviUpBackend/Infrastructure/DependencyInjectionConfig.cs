@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using TriviUpBackend.Repositories.Users;
 using TriviUpBackend.Services.Auth;
 using TriviUpBackend.Cuestionarios.Repositories;
@@ -32,42 +33,10 @@ public static class DependencyInjectionConfig
         services.AddScoped<IProfilePhotoStorage, ProfilePhotoStorage>();
         services.AddScoped<IQuestionImageStorage, QuestionImageStorage>();
 
-        // Cache
-        services.AddStackExchangeRedisCache(options =>
-        {
-            // Try REDIS_URL first, then construct from individual variables
-            var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
-            if (!string.IsNullOrEmpty(redisUrl))
-            {
-                options.Configuration = redisUrl;
-            }
-            else
-            {
-                // Construct from individual Railway variables
-                var host = Environment.GetEnvironmentVariable("REDISHOST");
-                var port = Environment.GetEnvironmentVariable("REDISPORT") ?? "6379";
-                var password = Environment.GetEnvironmentVariable("REDISPASSWORD") ?? "";
-                var user = Environment.GetEnvironmentVariable("REDISUSER") ?? "default";
+        // Cache - usar memoria local en lugar de Redis
+        services.AddMemoryCache();
+        services.AddScoped<ICacheService, MemoryCacheService>();
 
-                // If REDISHOST is not set or still contains Railway variable reference, use default
-                if (string.IsNullOrEmpty(host) || host.StartsWith("${{"))
-                {
-                    host = "redis.railway.internal";
-                }
-
-                // Strip port from host if present (some Railway templates include port)
-                if (host.Contains(':'))
-                {
-                    host = host.Split(':')[0];
-                }
-
-                options.Configuration = $"redis://{user}:{password}@{host}:{port}";
-            }
-            options.InstanceName = "TriviUp:";
-        });
-        services.AddScoped<ICacheService, RedisCacheService>();
-
-        // Eventos
         //services.AddScoped<IEventPublisher, EventPublisher>();
 
         return services;

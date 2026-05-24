@@ -56,14 +56,12 @@ app.UseHttpsRedirection();
 // CORS: Debe ir después de Routing y antes de Authentication/Authorization
 app.UseRouting();
 
-// Tu extensión de CORS
+// Extensión de CORS
 app.UseCorsPolicy(); 
 
-// Seguridad: El orden es CRÍTICO aquí
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Sembrado de datos (Tu extensión de DatabaseSeeder)
 app.SeedDatabase();
 
 // Mapeo de Controladores

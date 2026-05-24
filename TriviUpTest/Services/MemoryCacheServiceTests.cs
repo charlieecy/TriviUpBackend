@@ -1,37 +1,33 @@
 using Xunit;
 using Moq;
-using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using TriviUpBackend.Services.Cache;
-using System.Text;
-using System.Text.Json;
 
 namespace TriviUpTest.Services;
 
-public class RedisCacheServiceTests
+public class MemoryCacheServiceTests
 {
-    private readonly Mock<IDistributedCache> _mockCache;
-    private readonly Mock<ILogger<RedisCacheService>> _mockLogger;
-    private readonly RedisCacheService _service;
+    private readonly IMemoryCache _cache;
+    private readonly Mock<ILogger<MemoryCacheService>> _mockLogger;
+    private readonly MemoryCacheService _service;
 
-    public RedisCacheServiceTests()
+    public MemoryCacheServiceTests()
     {
-        _mockCache = new Mock<IDistributedCache>();
-        _mockLogger = new Mock<ILogger<RedisCacheService>>();
-        _service = new RedisCacheService(_mockCache.Object, _mockLogger.Object);
+        _cache = new MemoryCache(new MemoryCacheOptions());
+        _mockLogger = new Mock<ILogger<MemoryCacheService>>();
+        _service = new MemoryCacheService(_cache, _mockLogger.Object);
     }
 
     // ========== GetAsync Tests ==========
 
     [Fact]
-    public async Task GetAsync_ExistingKey_ReturnsDeserializedValue()
+    public async Task GetAsync_ExistingKey_ReturnsValue()
     {
         // Arrange
         var key = "test-key";
         var expectedValue = new TestData { Name = "Test", Value = 42 };
-        var json = JsonSerializer.Serialize(expectedValue);
-        var bytes = Encoding.UTF8.GetBytes(json);
-        _mockCache.Setup(c => c.GetAsync(key, default)).ReturnsAsync(bytes);
+        _cache.Set(key, expectedValue);
 
         // Act
         var result = await _service.GetAsync<TestData>(key);
@@ -47,7 +43,6 @@ public class RedisCacheServiceTests
     {
         // Arrange
         var key = "non-existing-key";
-        _mockCache.Setup(c => c.GetAsync(key, default)).ReturnsAsync((byte[]?)null);
 
         // Act
         var result = await _service.GetAsync<TestData>(key);
@@ -57,36 +52,7 @@ public class RedisCacheServiceTests
     }
 
     [Fact]
-    public async Task GetAsync_CacheThrowsException_ReturnsDefault()
-    {
-        // Arrange
-        var key = "error-key";
-        _mockCache.Setup(c => c.GetAsync(key, default)).ThrowsAsync(new Exception("Redis connection failed"));
-
-        // Act
-        var result = await _service.GetAsync<TestData>(key);
-
-        // Assert
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GetAsync_InvalidJson_ReturnsDefault()
-    {
-        // Arrange
-        var key = "invalid-json-key";
-        var invalidBytes = Encoding.UTF8.GetBytes("not valid json {{{");
-        _mockCache.Setup(c => c.GetAsync(key, default)).ReturnsAsync(invalidBytes);
-
-        // Act
-        var result = await _service.GetAsync<TestData>(key);
-
-        // Assert
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GetAsync_ComplexObject_ReturnsCorrectlyDeserialized()
+    public async Task GetAsync_ComplexObject_ReturnsCorrectly()
     {
         // Arrange
         var key = "complex-key";
@@ -97,9 +63,7 @@ public class RedisCacheServiceTests
             Nested = new NestedData { Value = "nested-value" },
             Items = new List<int> { 1, 2, 3 }
         };
-        var json = JsonSerializer.Serialize(expectedValue);
-        var bytes = Encoding.UTF8.GetBytes(json);
-        _mockCache.Setup(c => c.GetAsync(key, default)).ReturnsAsync(bytes);
+        _cache.Set(key, expectedValue);
 
         // Act
         var result = await _service.GetAsync<ComplexData>(key);
@@ -113,24 +77,10 @@ public class RedisCacheServiceTests
         Assert.Equal(3, result.Items.Count);
     }
 
-    [Fact]
-    public async Task GetAsync_EmptyBytes_ReturnsDefault()
-    {
-        // Arrange
-        var key = "empty-key";
-        _mockCache.Setup(c => c.GetAsync(key, default)).ReturnsAsync(Array.Empty<byte>());
-
-        // Act
-        var result = await _service.GetAsync<TestData>(key);
-
-        // Assert
-        Assert.Null(result);
-    }
-
     // ========== SetAsync Tests ==========
 
     [Fact]
-    public async Task SetAsync_ValidKeyAndValue_SetsCacheWithOptions()
+    public async Task SetAsync_ValidKeyAndValue_SetsCache()
     {
         // Arrange
         var key = "test-key";
@@ -141,17 +91,14 @@ public class RedisCacheServiceTests
         await _service.SetAsync(key, value, expiry);
 
         // Assert
-        _mockCache.Verify(c => c.SetAsync(
-            key,
-            It.IsAny<byte[]>(),
-            It.Is<DistributedCacheEntryOptions>(o =>
-                o.AbsoluteExpirationRelativeToNow == expiry),
-            default),
-            Times.Once);
+        var result = _cache.Get<TestData>(key);
+        Assert.NotNull(result);
+        Assert.Equal("Test", result.Name);
+        Assert.Equal(100, result.Value);
     }
 
     [Fact]
-    public async Task SetAsync_NullExpiry_SetsCacheWithoutExpiration()
+    public async Task SetAsync_NullExpiry_SetsCache()
     {
         // Arrange
         var key = "test-key";
@@ -161,12 +108,9 @@ public class RedisCacheServiceTests
         await _service.SetAsync(key, value, null);
 
         // Assert
-        _mockCache.Verify(c => c.SetAsync(
-            key,
-            It.IsAny<byte[]>(),
-            It.IsAny<DistributedCacheEntryOptions>(),
-            default),
-            Times.Once);
+        var result = _cache.Get<TestData>(key);
+        Assert.NotNull(result);
+        Assert.Equal("No Expiry", result.Name);
     }
 
     [Fact]
@@ -175,36 +119,10 @@ public class RedisCacheServiceTests
         // Arrange
         var key = "error-key";
         var value = new TestData { Name = "Error", Value = 0 };
-        _mockCache.Setup(c => c.SetAsync(key, It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), default))
-            .ThrowsAsync(new Exception("Redis write failed"));
 
         // Act & Assert - should not throw
         var exception = await Record.ExceptionAsync(() => _service.SetAsync(key, value));
         Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task SetAsync_SerializesValueCorrectly()
-    {
-        // Arrange
-        var key = "serialize-key";
-        var value = new TestData { Name = "Serialize Test", Value = 999 };
-        byte[]? capturedBytes = null;
-
-        _mockCache.Setup(c => c.SetAsync(key, It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), default))
-            .Callback<string, byte[], DistributedCacheEntryOptions, CancellationToken>((k, bytes, o, t) => capturedBytes = bytes)
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await _service.SetAsync(key, value);
-
-        // Assert
-        Assert.NotNull(capturedBytes);
-        var capturedJson = Encoding.UTF8.GetString(capturedBytes);
-        var deserialized = JsonSerializer.Deserialize<TestData>(capturedJson);
-        Assert.NotNull(deserialized);
-        Assert.Equal("Serialize Test", deserialized.Name);
-        Assert.Equal(999, deserialized.Value);
     }
 
     [Fact]
@@ -223,16 +141,19 @@ public class RedisCacheServiceTests
     // ========== RemoveAsync Tests ==========
 
     [Fact]
-    public async Task RemoveAsync_ExistingKey_CallsCacheRemove()
+    public async Task RemoveAsync_ExistingKey_RemovesFromCache()
     {
         // Arrange
         var key = "to-remove-key";
+        var value = new TestData { Name = "Remove Me", Value = 99 };
+        _cache.Set(key, value);
 
         // Act
         await _service.RemoveAsync(key);
 
         // Assert
-        _mockCache.Verify(c => c.RemoveAsync(key, default), Times.Once);
+        var result = _cache.Get<TestData>(key);
+        Assert.Null(result);
     }
 
     [Fact]
@@ -240,7 +161,6 @@ public class RedisCacheServiceTests
     {
         // Arrange
         var key = "error-key";
-        _mockCache.Setup(c => c.RemoveAsync(key, default)).ThrowsAsync(new Exception("Redis delete failed"));
 
         // Act & Assert - should not throw
         var exception = await Record.ExceptionAsync(() => _service.RemoveAsync(key));
@@ -248,10 +168,14 @@ public class RedisCacheServiceTests
     }
 
     [Fact]
-    public async Task RemoveAsync_MultipleKeys_CallsRemoveForEach()
+    public async Task RemoveAsync_MultipleKeys_RemovesAll()
     {
         // Arrange
         var keys = new[] { "key1", "key2", "key3" };
+        foreach (var key in keys)
+        {
+            _cache.Set(key, new TestData { Name = key, Value = 0 });
+        }
 
         // Act
         foreach (var key in keys)
@@ -262,7 +186,8 @@ public class RedisCacheServiceTests
         // Assert
         foreach (var key in keys)
         {
-            _mockCache.Verify(c => c.RemoveAsync(key, default), Times.Once);
+            var result = _cache.Get<TestData>(key);
+            Assert.Null(result);
         }
     }
 
