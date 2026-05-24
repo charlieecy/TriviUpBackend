@@ -35,7 +35,8 @@ public static class DependencyInjectionConfig
         // Cache
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = configuration.GetConnectionString("Redis")
+            options.Configuration = Environment.GetEnvironmentVariable("REDIS_URL")
+                ?? configuration.GetConnectionString("Redis")
                 ?? configuration["Redis:ConnectionString"]
                 ?? "localhost:6379";
             options.InstanceName = "TriviUp:";
