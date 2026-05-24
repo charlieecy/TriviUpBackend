@@ -35,10 +35,21 @@ public static class DependencyInjectionConfig
         // Cache
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = Environment.GetEnvironmentVariable("REDIS_URL")
-                ?? configuration.GetConnectionString("Redis")
-                ?? configuration["Redis:ConnectionString"]
-                ?? "localhost:6379";
+            // Try REDIS_URL first, then construct from individual variables
+            var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
+            if (!string.IsNullOrEmpty(redisUrl))
+            {
+                options.Configuration = redisUrl;
+            }
+            else
+            {
+                // Construct from individual Railway variables
+                var host = Environment.GetEnvironmentVariable("REDISHOST") ?? "localhost";
+                var port = Environment.GetEnvironmentVariable("REDISPORT") ?? "6379";
+                var password = Environment.GetEnvironmentVariable("REDISPASSWORD") ?? "";
+                var user = Environment.GetEnvironmentVariable("REDISUSER") ?? "default";
+                options.Configuration = $"redis://{user}:{password}@{host}:{port}";
+            }
             options.InstanceName = "TriviUp:";
         });
         services.AddScoped<ICacheService, RedisCacheService>();
