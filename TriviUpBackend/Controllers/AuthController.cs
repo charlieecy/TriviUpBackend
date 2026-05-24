@@ -121,7 +121,9 @@ public class AuthController(
             logger.LogInformation("Google OAuth success. Redirecting to frontend with user: {UserJson}", userJson);
             
             // Always redirect to frontend callback with token and user
-            var frontendCallback = "http://localhost:4200/auth/callback";
+            var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL")
+                ?? throw new InvalidOperationException("FRONTEND_URL no configurada");
+            var frontendCallback = $"{frontendUrl}/auth/callback";
             var redirectUrl = $"{frontendCallback}?token={response.Token}&user={userParam}";
             logger.LogInformation("Redirect URL: {RedirectUrl}", redirectUrl);
             return Redirect(redirectUrl);
@@ -140,9 +142,9 @@ public class AuthController(
 
     private string BuildGoogleCallbackUri(string? returnUrl)
     {
-        var baseUrl = Request.IsHttps ? "https" : "http";
-        var host = Request.Host.Value;
-        return $"{baseUrl}://{host}/auth/google/callback";
+        var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL")
+            ?? throw new InvalidOperationException("FRONTEND_URL no configurada");
+        return $"{frontendUrl}/auth/google/callback";
     }
 
     private async Task<GoogleTokenResponse> ExchangeCodeForTokensAsync(string code, string clientId, string clientSecret, string redirectUri)
