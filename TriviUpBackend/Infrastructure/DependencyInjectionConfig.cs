@@ -44,10 +44,23 @@ public static class DependencyInjectionConfig
             else
             {
                 // Construct from individual Railway variables
-                var host = Environment.GetEnvironmentVariable("REDISHOST") ?? "localhost";
+                var host = Environment.GetEnvironmentVariable("REDISHOST");
                 var port = Environment.GetEnvironmentVariable("REDISPORT") ?? "6379";
                 var password = Environment.GetEnvironmentVariable("REDISPASSWORD") ?? "";
                 var user = Environment.GetEnvironmentVariable("REDISUSER") ?? "default";
+
+                // If REDISHOST is not set or still contains Railway variable reference, use default
+                if (string.IsNullOrEmpty(host) || host.StartsWith("${{"))
+                {
+                    host = "redis.railway.internal";
+                }
+
+                // Strip port from host if present (some Railway templates include port)
+                if (host.Contains(':'))
+                {
+                    host = host.Split(':')[0];
+                }
+
                 options.Configuration = $"redis://{user}:{password}@{host}:{port}";
             }
             options.InstanceName = "TriviUp:";
