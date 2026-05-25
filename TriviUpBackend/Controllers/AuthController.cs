@@ -11,6 +11,7 @@ namespace TriviUpBackend.Controllers;
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class AuthController(
     IAuthService authService,
     ILogger<AuthController> logger
