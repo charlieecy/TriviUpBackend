@@ -11,7 +11,6 @@ namespace TriviUpBackend.Controllers;
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class AuthController(
     IAuthService authService,
     ILogger<AuthController> logger
@@ -117,14 +116,13 @@ public class AuthController(
             var response = result.Value;
             var userJson = System.Text.Json.JsonSerializer.Serialize(response.User);
             var userParam = Uri.EscapeDataString(userJson);
-            
+
             logger.LogInformation("Google OAuth success. Redirecting to frontend with user: {UserJson}", userJson);
-            
+
             // Always redirect to frontend callback with token and user
             var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL")
                 ?? throw new InvalidOperationException("FRONTEND_URL no configurada");
-            var frontendCallback = $"{frontendUrl}/auth/callback";
-            var redirectUrl = $"{frontendCallback}?token={response.Token}&user={userParam}";
+            var redirectUrl = $"{frontendUrl}/auth/callback?token={response.Token}&user={userParam}";
             logger.LogInformation("Redirect URL: {RedirectUrl}", redirectUrl);
             return Redirect(redirectUrl);
         }
@@ -142,9 +140,9 @@ public class AuthController(
 
     private string BuildGoogleCallbackUri(string? returnUrl)
     {
-        var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL")
-            ?? throw new InvalidOperationException("FRONTEND_URL no configurada");
-        return $"{frontendUrl}/auth/google/callback";
+        var backendUrl = Environment.GetEnvironmentVariable("BACKEND_URL")
+            ?? throw new InvalidOperationException("BACKEND_URL no configurada");
+        return $"{backendUrl}/auth/google/callback";
     }
 
     private async Task<GoogleTokenResponse> ExchangeCodeForTokensAsync(string code, string clientId, string clientSecret, string redirectUri)
