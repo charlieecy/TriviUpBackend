@@ -143,9 +143,9 @@ public class AuthController(
 
     private string BuildGoogleCallbackUri(string? returnUrl)
     {
-        var backendUrl = Environment.GetEnvironmentVariable("BACKEND_URL")
-            ?? throw new InvalidOperationException("BACKEND_URL no configurada");
-        return $"{backendUrl}/auth/google/callback";
+        var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL")
+            ?? throw new InvalidOperationException("FRONTEND_URL no configurada");
+        return $"{frontendUrl}/auth/google/callback";
     }
 
     private async Task<GoogleTokenResponse> ExchangeCodeForTokensAsync(string code, string clientId, string clientSecret, string redirectUri)
