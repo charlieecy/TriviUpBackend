@@ -45,9 +45,11 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SignIn([FromBody] LoginDto dto)
     {
-        logger.LogInformation("Petición de inicio de sesión recibida para usuario: {Username}", dto.Username);
+        logger.LogInformation("[AUTH] SignIn START - Username: {Username}", dto.Username);
 
         var resultado = await authService.SignInAsync(dto);
+
+        logger.LogInformation("[AUTH] SignIn END - Success: {IsSuccess}", resultado.IsSuccess);
 
         return resultado.Match(
             response => Ok(response),
