@@ -61,6 +61,7 @@ public class CuestionariosController(
     }
 
     [HttpGet("{id:long}")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(QuizResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(long id)
@@ -76,6 +77,7 @@ public class CuestionariosController(
     }
 
     [HttpGet("gamecode/{gameCode}")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(QuizResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByGameCode(string gameCode)

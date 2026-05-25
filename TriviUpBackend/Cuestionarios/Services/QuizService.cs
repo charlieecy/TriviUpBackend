@@ -291,6 +291,10 @@ public class QuizService(
         }
 
         var updatedQuiz = await quizRepository.IncrementLikesAsync(id);
+
+        // Invalidate public quizzes cache
+        await cacheService.RemoveByPrefixAsync("quizzes:public:");
+
         return Result.Success<int, QuizError>(updatedQuiz.Likes);
     }
 
@@ -306,6 +310,10 @@ public class QuizService(
         }
 
         var updatedQuiz = await quizRepository.DecrementLikesAsync(id);
+
+        // Invalidate public quizzes cache
+        await cacheService.RemoveByPrefixAsync("quizzes:public:");
+
         return Result.Success<int, QuizError>(updatedQuiz.Likes);
     }
 
@@ -321,6 +329,10 @@ public class QuizService(
         }
 
         var updatedQuiz = await quizRepository.IncrementVisitasAsync(id);
+
+        // Invalidate public quizzes cache
+        await cacheService.RemoveByPrefixAsync("quizzes:public:");
+
         return Result.Success<int, QuizError>(updatedQuiz.Visitas);
     }
 
