@@ -116,9 +116,9 @@ public class AuthController(
             var response = result.Value;
             var userJson = System.Text.Json.JsonSerializer.Serialize(response.User);
             var userParam = Uri.EscapeDataString(userJson);
-            
+
             logger.LogInformation("Google OAuth success. Redirecting to frontend with user: {UserJson}", userJson);
-            
+
             // Always redirect to frontend callback with token and user
             var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL")
                 ?? throw new InvalidOperationException("FRONTEND_URL no configurada");
