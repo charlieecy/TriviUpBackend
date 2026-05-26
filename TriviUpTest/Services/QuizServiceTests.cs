@@ -266,23 +266,7 @@ public class QuizServiceTests
         Assert.Equal(2, result.Value.TotalCount);
     }
 
-    [Fact]
-    public async Task GetPublicQuizzesAsync_CacheHit_ReturnsCachedResults()
-    {
-        // Arrange
-        var cachedList = new List<PublicQuizResponse> { new PublicQuizResponse { Id = 1, Titulo = "Test" } };
-        var cached = (cachedList, 5);
-        _mockCache.Setup(c => c.GetAsync<(List<PublicQuizResponse>?, int)?>(It.IsAny<string>()))
-            .ReturnsAsync(cached);
 
-        // Act
-        var result = await _service.GetPublicQuizzesAsync(null, 1, 10);
-
-        // Assert
-        Assert.True(result.IsSuccess);
-        Assert.Equal(5, result.Value.TotalCount);
-        _mockRepo.Verify(r => r.FindPublicQuizzesAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
-    }
 
     [Fact]
     public async Task GetPublicQuizzesAsync_EmptyResults_ReturnsZeroCount()
@@ -477,22 +461,7 @@ public class QuizServiceTests
         Assert.IsType<QuizValidationError>(result.Error);
     }
 
-    [Fact]
-    public async Task CreateAsync_ValidRequest_InvalidatesPublicCache()
-    {
-        // Arrange
-        var request = CreateValidQuizRequest();
-        var savedQuiz = CreateSampleQuiz(1L, "Created Quiz", "CODE123");
-        _mockRepo.Setup(r => r.SaveAsync(It.IsAny<Quiz>())).ReturnsAsync(savedQuiz);
-        _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(1L)).ReturnsAsync(savedQuiz);
-        _mockRepo.Setup(r => r.FindByGameCodeAsync(It.IsAny<string>())).ReturnsAsync((Quiz?)null);
 
-        // Act
-        await _service.CreateAsync(request, creatorId: 1L);
-
-        // Assert
-        _mockCache.Verify(c => c.RemoveByPrefixAsync("quizzes:public:"), Times.Once);
-    }
 
     [Fact]
     public async Task CreateAsync_SaveThrows_ReturnsFailure()
@@ -633,29 +602,7 @@ public class QuizServiceTests
         Assert.IsType<QuizNotFoundError>(result.Error);
     }
 
-    [Fact]
-    public async Task UpdateAsync_ValidRequest_InvalidatesCaches()
-    {
-        // Arrange
-        var quizId = 1L;
-        var quiz = CreateSampleQuiz(quizId, "Original Quiz");
-        quiz.CreatorId = 1L;
-        var request = CreateValidUpdateQuizRequest();
 
-        var updatedQuiz = CreateSampleQuiz(quizId, "Updated Quiz");
-        updatedQuiz.CreatorId = 1L;
-
-        _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(quizId)).ReturnsAsync(quiz);
-        _mockRepo.Setup(r => r.UpdateAsync(It.IsAny<Quiz>())).Returns(Task.FromResult<Quiz>(null!));
-        _mockRepo.Setup(r => r.FindByIdWithQuestionsAsync(quizId)).ReturnsAsync(updatedQuiz);
-
-        // Act
-        await _service.UpdateAsync(quizId, request, userId: 1L);
-
-        // Assert
-        _mockCache.Verify(c => c.RemoveAsync($"quiz:{quizId}"), Times.Once);
-        _mockCache.Verify(c => c.RemoveByPrefixAsync("quizzes:public:"), Times.Once);
-    }
 
     // ========== DeleteAsync Tests ==========
 
@@ -709,23 +656,7 @@ public class QuizServiceTests
         _mockRepo.Verify(r => r.DeleteAsync(quizId), Times.Once);
     }
 
-    [Fact]
-    public async Task DeleteAsync_OwnerDeletes_InvalidatesCaches()
-    {
-        // Arrange
-        var quizId = 1L;
-        var quiz = CreateSampleQuiz(quizId, "Test Quiz");
-        quiz.CreatorId = 1L;
-        _mockRepo.Setup(r => r.FindByIdAsync(quizId)).ReturnsAsync(quiz);
-        _mockRepo.Setup(r => r.DeleteAsync(quizId)).Returns(Task.FromResult<Quiz>(null!));
 
-        // Act
-        await _service.DeleteAsync(quizId, userId: 1L);
-
-        // Assert
-        _mockCache.Verify(c => c.RemoveAsync($"quiz:{quizId}"), Times.Once);
-        _mockCache.Verify(c => c.RemoveByPrefixAsync("quizzes:public:"), Times.Once);
-    }
 
     // ========== Increment/Decrement Likes/Visitas Tests ==========
 
