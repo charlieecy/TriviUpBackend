@@ -17,8 +17,10 @@ public class UserRepository(
 
     public async Task<User?> FindByUsernameAsync(string username)
     {
-        logger.LogDebug("Executing query with global filter - Username: {Username}", username);
-        return await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        logger.LogInformation("[REPO] FindByUsernameAsync START - Username: {Username}", username);
+        var result = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        logger.LogInformation("[REPO] FindByUsernameAsync END - Found: {Found}, UserId: {UserId}", result != null, result?.Id);
+        return result;
     }
 
     public async Task<User?> FindByEmailAsync(string email)

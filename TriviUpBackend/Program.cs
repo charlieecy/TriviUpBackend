@@ -51,7 +51,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// HTTPS Redirection deshabilitado - Railway maneja HTTPS en el proxy
+// app.UseHttpsRedirection();
 
 // CORS: Debe ir después de Routing y antes de Authentication/Authorization
 app.UseRouting();

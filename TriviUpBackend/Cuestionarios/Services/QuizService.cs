@@ -66,9 +66,6 @@ public class QuizService(
             return Result.Failure<QuizResponse, QuizError>(new QuizNotFoundError("Quiz no encontrado después de crear"));
         }
 
-        // Invalidate public quizzes cache
-        await cacheService.RemoveByPrefixAsync("quizzes:public:");
-
         logger.LogInformation("Quiz creado exitosamente con ID: {Id}, GameCode: {GameCode}", savedQuiz.Id, savedQuiz.GameCode);
 
         return Result.Success<QuizResponse, QuizError>(QuizResponse.FromEntity(quizWithQuestions));
@@ -216,9 +213,8 @@ public class QuizService(
             return Result.Failure<QuizResponse, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado después de actualizar"));
         }
 
-        // Invalidate caches
+        // Invalidate individual quiz cache
         await cacheService.RemoveAsync($"quiz:{id}");
-        await cacheService.RemoveByPrefixAsync("quizzes:public:");
 
         logger.LogInformation("Quiz {Id} actualizado exitosamente", id);
 
@@ -243,9 +239,8 @@ public class QuizService(
 
         await quizRepository.DeleteAsync(id);
 
-        // Invalidate caches
+        // Invalidate individual quiz cache
         await cacheService.RemoveAsync($"quiz:{id}");
-        await cacheService.RemoveByPrefixAsync("quizzes:public:");
 
         logger.LogInformation("Quiz {Id} eliminado exitosamente", id);
 
@@ -254,73 +249,78 @@ public class QuizService(
 
     public async Task<Result<(List<PublicQuizResponse> Quizzes, int TotalCount), QuizError>> GetPublicQuizzesAsync(string? search, int page, int pageSize)
     {
-        logger.LogInformation("Obteniendo quizzes públicos - Search: {Search}, Page: {Page}, PageSize: {PageSize}",
+        logger.LogInformation("[QuizService] Obteniendo quizzes públicos sin cache - Search: {Search}, Page: {Page}, PageSize: {PageSize}",
             search, page, pageSize);
 
-        var cacheKey = $"quizzes:public:{search ?? ""}:{page}:{pageSize}";
-        var cached = await cacheService.GetAsync<(List<PublicQuizResponse>? Quizzes, int TotalCount)?>(cacheKey);
-        if (cached.HasValue && cached.Value.Quizzes != null)
-        {
-            logger.LogDebug("Cache hit for public quizzes with key {CacheKey}", cacheKey);
-            var (cachedQuizzes, cachedTotal) = cached.Value;
-            return Result.Success<(List<PublicQuizResponse>, int), QuizError>((cachedQuizzes!, cachedTotal));
-        }
-
+        // Sin cache - siempre obtener de la base de datos directamente
         var quizzes = await quizRepository.FindPublicQuizzesAsync(search, page, pageSize);
         var totalCount = await quizRepository.GetPublicQuizzesCountAsync(search);
 
         var publicQuizResponses = quizzes.Select(PublicQuizResponse.FromEntity).ToList();
         var result = (publicQuizResponses, totalCount);
 
-        await cacheService.SetAsync(cacheKey, result, DefaultCacheDuration);
-
-        logger.LogInformation("Se encontraron {Count} quizzes públicos de {Total} total", publicQuizResponses.Count, totalCount);
+        logger.LogInformation("[QuizService] Se encontraron {Count} quizzes públicos de {Total} total", publicQuizResponses.Count, totalCount);
 
         return Result.Success<(List<PublicQuizResponse>, int), QuizError>(result);
     }
 
     public async Task<Result<int, QuizError>> IncrementLikesAsync(long id)
     {
-        logger.LogInformation("Incrementando likes del quiz {Id}", id);
+        logger.LogInformation("[QuizService] Incrementando likes del quiz {Id}", id);
 
         var quiz = await quizRepository.FindByIdAsync(id);
         if (quiz == null)
         {
-            logger.LogWarning("Quiz no encontrado con ID: {Id}", id);
+            logger.LogWarning("[QuizService] Quiz no encontrado con ID: {Id}", id);
             return Result.Failure<int, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado"));
         }
 
+        logger.LogInformation("[QuizService] Likes actuales del quiz {Id}: {Likes}", id, quiz.Likes);
+
         var updatedQuiz = await quizRepository.IncrementLikesAsync(id);
+
+        logger.LogInformation("[QuizService] Likes del quiz {Id} incrementados a: {Likes}", id, updatedQuiz.Likes);
+
         return Result.Success<int, QuizError>(updatedQuiz.Likes);
     }
 
     public async Task<Result<int, QuizError>> DecrementLikesAsync(long id)
     {
-        logger.LogInformation("Decrementando likes del quiz {Id}", id);
+        logger.LogInformation("[QuizService] Decrementando likes del quiz {Id}", id);
 
         var quiz = await quizRepository.FindByIdAsync(id);
         if (quiz == null)
         {
-            logger.LogWarning("Quiz no encontrado con ID: {Id}", id);
+            logger.LogWarning("[QuizService] Quiz no encontrado con ID: {Id}", id);
             return Result.Failure<int, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado"));
         }
 
+        logger.LogInformation("[QuizService] Likes actuales del quiz {Id}: {Likes}", id, quiz.Likes);
+
         var updatedQuiz = await quizRepository.DecrementLikesAsync(id);
+
+        logger.LogInformation("[QuizService] Likes del quiz {Id} decrementados a: {Likes}", id, updatedQuiz.Likes);
+
         return Result.Success<int, QuizError>(updatedQuiz.Likes);
     }
 
     public async Task<Result<int, QuizError>> IncrementVisitasAsync(long id)
     {
-        logger.LogInformation("Incrementando visitas del quiz {Id}", id);
+        logger.LogInformation("[QuizService] Incrementando visitas del quiz {Id}", id);
 
         var quiz = await quizRepository.FindByIdAsync(id);
         if (quiz == null)
         {
-            logger.LogWarning("Quiz no encontrado con ID: {Id}", id);
+            logger.LogWarning("[QuizService] Quiz no encontrado con ID: {Id}", id);
             return Result.Failure<int, QuizError>(new QuizNotFoundError($"Quiz con ID {id} no encontrado"));
         }
 
+        logger.LogInformation("[QuizService] Visitas actuales del quiz {Id}: {Visitas}", id, quiz.Visitas);
+
         var updatedQuiz = await quizRepository.IncrementVisitasAsync(id);
+
+        logger.LogInformation("[QuizService] Visitas del quiz {Id} incrementadas a: {Visitas}", id, updatedQuiz.Visitas);
+
         return Result.Success<int, QuizError>(updatedQuiz.Visitas);
     }
 

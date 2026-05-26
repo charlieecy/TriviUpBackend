@@ -45,9 +45,11 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SignIn([FromBody] LoginDto dto)
     {
-        logger.LogInformation("Petición de inicio de sesión recibida para usuario: {Username}", dto.Username);
+        logger.LogInformation("[AUTH] SignIn START - Username: {Username}", dto.Username);
 
         var resultado = await authService.SignInAsync(dto);
+
+        logger.LogInformation("[AUTH] SignIn END - Success: {IsSuccess}", resultado.IsSuccess);
 
         return resultado.Match(
             response => Ok(response),
@@ -117,14 +119,13 @@ public class AuthController(
             var response = result.Value;
             var userJson = System.Text.Json.JsonSerializer.Serialize(response.User);
             var userParam = Uri.EscapeDataString(userJson);
-            
+
             logger.LogInformation("Google OAuth success. Redirecting to frontend with user: {UserJson}", userJson);
-            
+
             // Always redirect to frontend callback with token and user
             var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL")
                 ?? throw new InvalidOperationException("FRONTEND_URL no configurada");
-            var frontendCallback = $"{frontendUrl}/auth/callback";
-            var redirectUrl = $"{frontendCallback}?token={response.Token}&user={userParam}";
+            var redirectUrl = $"{frontendUrl}/auth/callback?token={response.Token}&user={userParam}";
             logger.LogInformation("Redirect URL: {RedirectUrl}", redirectUrl);
             return Redirect(redirectUrl);
         }

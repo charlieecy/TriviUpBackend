@@ -62,11 +62,13 @@ public class AuthService(
     public async Task<Result<AuthResponseDto, AuthError>> SignInAsync(LoginDto dto)
     {
         var sanitizedUsername = dto.Username?.Replace("\n", "").Replace("\r", "");
-        logger.LogInformation("SignIn request for username: {Username}", sanitizedUsername);
+        logger.LogInformation("[AUTH_SERVICE] SignInAsync START - Username: {Username}", sanitizedUsername);
 
         try
         {
+            logger.LogInformation("[AUTH_SERVICE] About to call FindByUsernameAsync");
             var user = await userRepository.FindByUsernameAsync(dto.Username!);
+            logger.LogInformation("[AUTH_SERVICE] FindByUsernameAsync returned: {UserId}", user?.Id);
             if (user is null)
             {
                 logger.LogWarning("SignIn fallido: Usuario no encontrado - {Username}", sanitizedUsername);
