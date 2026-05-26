@@ -185,6 +185,10 @@ public class GameHub : Hub
 
         await _gameService.LeaveGameAsync(roomCode, userId);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomCode);
+
+        // Broadcast PlayerLeft to remaining players in the room
+        await Clients.Group(roomCode).SendAsync("PlayerLeft", userId);
+        _logger.LogInformation("Broadcasted PlayerLeft event for user {UserId} in room {RoomCode}", userId, roomCode);
     }
 
     /// <summary>
