@@ -1,4 +1,5 @@
 using CSharpFunctionalExtensions;
+using TriviUpBackend.Common.Storage;
 using TriviUpBackend.DTO.User;
 using TriviUpBackend.Errors;
 using TriviUpBackend.Models.Auth;
@@ -9,6 +10,7 @@ namespace TriviUpBackend.Services.Auth;
 public class AuthService(
     IUserRepository userRepository,
     IJwtService jwtService,
+    IProfilePhotoStorage profilePhotoStorage,
     ILogger<AuthService> logger
 ) : IAuthService
 {
@@ -187,13 +189,17 @@ public class AuthService(
     {
         var token = jwtService.GenerateToken(user);
 
+        var profilePhotoUrl = !string.IsNullOrEmpty(user.ProfilePhotoUrl)
+            ? profilePhotoStorage.GetFullUrl(user.ProfilePhotoUrl)
+            : null;
+
         var userDto = new UserDto(
             user.Id,
             user.Username,
             user.Email,
             user.Role,
             user.CreatedAt,
-            user.ProfilePhotoUrl
+            profilePhotoUrl
         );
 
         return new AuthResponseDto(token, userDto);
