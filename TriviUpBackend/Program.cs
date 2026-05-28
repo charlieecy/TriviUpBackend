@@ -46,10 +46,7 @@ var app = builder.Build();
 // Exception Handler Global (Tu extensión)
 app.UseGlobalExceptionHandler();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.MapOpenApi();
 
 // HTTPS Redirection deshabilitado - Railway maneja HTTPS en el proxy
 // app.UseHttpsRedirection();
