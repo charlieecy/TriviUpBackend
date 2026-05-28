@@ -8,6 +8,10 @@ using TriviUpBackend.Services.Auth;
 
 namespace TriviUpBackend.Controllers;
 
+/// <summary>
+/// Controlador de autenticación.
+/// Gestiona el registro, inicio de sesión y autenticación con Google OAuth.
+/// </summary>
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
@@ -18,6 +22,11 @@ public class AuthController(
 ) : ControllerBase
 {
 
+    /// <summary>
+    /// Registra un nuevo usuario en el sistema.
+    /// </summary>
+    /// <param name="dto">Datos de registro del usuario (nombre de usuario, email y contraseña).</param>
+    /// <returns>Respuesta de autenticación con token JWT y datos del usuario creado.</returns>
     [HttpPost("signup")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -40,6 +49,11 @@ public class AuthController(
     }
 
 
+    /// <summary>
+    /// Inicia sesión con credenciales de usuario.
+    /// </summary>
+    /// <param name="dto">Datos de inicio de sesión (nombre de usuario o email y contraseña).</param>
+    /// <returns>Respuesta de autenticación con token JWT y datos del usuario.</returns>
     [HttpPost("signin")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -62,6 +76,11 @@ public class AuthController(
         );
     }
 
+    /// <summary>
+    /// Redirige al usuario a la página de autenticación de Google OAuth.
+    /// </summary>
+    /// <param name="returnUrl">URL de retorno opcional tras el inicio de sesión exitoso.</param>
+    /// <returns>Redirección a la página de Google OAuth.</returns>
     [HttpGet("google")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     public IActionResult GoogleLogin([FromQuery] string? returnUrl = null)
@@ -86,6 +105,12 @@ public class AuthController(
         return Redirect(authorizationUrl);
     }
 
+    /// <summary>
+    /// Procesa el callback de Google OAuth tras la autenticación exitosa.
+    /// </summary>
+    /// <param name="code">Código de autorización proporcionado por Google.</param>
+    /// <param name="state">Estado opcional para redirigir a una URL específica tras el login.</param>
+    /// <returns>Redirección a la URL del frontend con token JWT y datos del usuario.</returns>
     [HttpGet("google/callback")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

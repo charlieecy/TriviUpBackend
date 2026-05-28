@@ -1,5 +1,8 @@
 namespace TriviUpBackend.Game.Configuration;
 
+/// <summary>
+/// Opciones de configuración para el servicio de juego.
+/// </summary>
 public class GameOptions
 {
     public int MaxPlayersPerRoom { get; set; } = 10;

@@ -4,6 +4,10 @@ using TriviUpBackend.Database;
 
 namespace TriviUpBackend.Infrastructure;
 
+/// <summary>
+/// Configuración de la base de datos.
+/// Registra el DbContext con soporte para PostgreSQL o InMemory.
+/// </summary>
 public static class DatabaseConfig
 {
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)

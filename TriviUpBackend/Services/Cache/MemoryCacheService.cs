@@ -3,12 +3,21 @@ using System.Collections.Concurrent;
 
 namespace TriviUpBackend.Services.Cache;
 
+/// <summary>
+/// Implementación del servicio de caché en memoria.
+/// Utiliza IMemoryCache de Microsoft.Extensions.Caching.
+/// </summary>
 public class MemoryCacheService : ICacheService
 {
     private readonly IMemoryCache _cache;
     private readonly ILogger<MemoryCacheService> _logger;
     private readonly ConcurrentDictionary<string, HashSet<string>> _keysByPrefix = new();
 
+    /// <summary>
+    /// Constructor del servicio de caché en memoria.
+    /// </summary>
+    /// <param name="cache">Caché de memoria de Microsoft.</param>
+    /// <param name="logger">Logger para mensajes de diagnóstico.</param>
     public MemoryCacheService(IMemoryCache cache, ILogger<MemoryCacheService> logger)
     {
         _cache = cache;
@@ -16,6 +25,7 @@ public class MemoryCacheService : ICacheService
         _logger.LogInformation("[MemoryCacheService] Servicio inicializado");
     }
 
+    /// <inheritdoc cref="ICacheService.GetAsync"/>
     public async Task<T?> GetAsync<T>(string key)
     {
         try
@@ -35,6 +45,7 @@ public class MemoryCacheService : ICacheService
         }
     }
 
+    /// <inheritdoc cref="ICacheService.SetAsync"/>
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null)
     {
         try
@@ -58,6 +69,7 @@ public class MemoryCacheService : ICacheService
         }
     }
 
+    /// <inheritdoc cref="ICacheService.RemoveAsync"/>
     public async Task RemoveAsync(string key)
     {
         try
@@ -73,6 +85,7 @@ public class MemoryCacheService : ICacheService
         }
     }
 
+    /// <inheritdoc cref="ICacheService.RemoveByPrefixAsync"/>
     public async Task RemoveByPrefixAsync(string prefix)
     {
         try
@@ -105,6 +118,10 @@ public class MemoryCacheService : ICacheService
         }
     }
 
+    /// <summary>
+    /// Registra una clave bajo todos sus prefixes posibles para permitir invalidación por prefijo.
+    /// </summary>
+    /// <param name="key">Clave a registrar.</param>
     private void TrackKeyByPrefixes(string key)
     {
         // Registrar la key bajo todos sus prefixes posibles
@@ -123,6 +140,10 @@ public class MemoryCacheService : ICacheService
         }
     }
 
+    /// <summary>
+    /// Elimina una clave del tracking de prefixes.
+    /// </summary>
+    /// <param name="key">Clave a eliminar del tracking.</param>
     private void RemoveKeyFromPrefixTracking(string key)
     {
         var parts = key.Split(':');

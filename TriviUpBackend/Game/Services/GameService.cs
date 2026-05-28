@@ -12,6 +12,10 @@ using Respuesta = TriviUpBackend.Cuestionarios.Entities.Respuesta;
 
 namespace TriviUpBackend.Game.Services;
 
+/// <summary>
+/// Implementación del servicio de gestión de partidas.
+/// Controla la creación, unión, inicio y gestión de salas de juego en tiempo real.
+/// </summary>
 public class GameService : IGameService
 {
     private readonly ConcurrentDictionary<string, GameRoom> _rooms = new();
@@ -24,6 +28,13 @@ public class GameService : IGameService
     private readonly ConcurrentDictionary<string, TurnManager> _roomTurnManagers = new();
     private readonly IServiceScopeFactory _scopeFactory;
 
+    /// <summary>
+    /// Constructor del servicio de juego.
+    /// </summary>
+    /// <param name="turnManager">Gestor de turnos.</param>
+    /// <param name="options">Configuración del juego.</param>
+    /// <param name="logger">Logger para mensajes de diagnóstico.</param>
+    /// <param name="scopeFactory">Fábrica de scopes para acceso a servicios scoped.</param>
     public GameService(
         ITurnManager turnManager,
         GameOptions options,
@@ -36,6 +47,7 @@ public class GameService : IGameService
         _scopeFactory = scopeFactory;
     }
 
+    /// <inheritdoc cref="IGameService.CreateGameAsync"/>
     public async Task<string> CreateGameAsync(long quizId, long ownerId, string username)
     {
         _logger.LogInformation("Creating game room for quiz {QuizId} by owner {OwnerId} ({Username})", quizId, ownerId, username);
@@ -81,6 +93,7 @@ public class GameService : IGameService
         return await Task.FromResult(roomCode);
     }
 
+    /// <inheritdoc cref="IGameService.JoinGameAsync"/>
     public Task<Result<GameRoom>> JoinGameAsync(string roomCode, long userId, string username, string connectionId)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -131,6 +144,7 @@ public class GameService : IGameService
         return Task.FromResult(Result.Success(room));
     }
 
+    /// <inheritdoc cref="IGameService.LeaveGameAsync"/>
     public async Task LeaveGameAsync(string roomCode, long userId)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -160,6 +174,7 @@ public class GameService : IGameService
         _logger.LogInformation("User {UserId} left room {RoomCode}", userId, roomCode);
     }
 
+    /// <inheritdoc cref="IGameService.StartGameAsync"/>
     public async Task<GameRoom?> StartGameAsync(string roomCode, long userId)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -250,6 +265,7 @@ public class GameService : IGameService
         return room;
     }
 
+    /// <inheritdoc cref="IGameService.SubmitAnswerAsync"/>
     public async Task<TurnResultDto?> SubmitAnswerAsync(string roomCode, long userId, long questionId, int answerIndex, int timeRemaining)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -333,6 +349,10 @@ public class GameService : IGameService
         return turnResult;
     }
 
+    /// <summary>
+    /// Avanza al siguiente turno, avanzando el índice de pregunta o terminando la partida.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
     private async Task AdvanceToNextTurnAsync(string roomCode)
     {
         _logger.LogInformation("[ADVANCE] AdvanceToNextTurnAsync called for room {RoomCode}", roomCode);
@@ -386,6 +406,10 @@ public class GameService : IGameService
         await BroadcastTurnStartedAsync(roomCode);
     }
 
+    /// <summary>
+    /// Maneja el timeout cuando un jugador no responde a tiempo.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
     private async Task HandleTurnTimeoutAsync(string roomCode)
     {
         _logger.LogWarning("[TIMEOUT] HandleTurnTimeoutAsync called for room {RoomCode}", roomCode);
@@ -455,6 +479,10 @@ public class GameService : IGameService
         await AdvanceToNextTurnAsync(roomCode);
     }
 
+    /// <summary>
+    /// Finaliza la partida, persiste el historial y notifica a los clientes.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
     private async Task EndGameAsync(string roomCode)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -524,6 +552,11 @@ public class GameService : IGameService
         _roomTurnManagers.TryRemove(roomCode, out _);
     }
 
+    /// <summary>
+    /// Inicia un temporizador para el turno actual.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
+    /// <param name="timeLimitSeconds">Límite de tiempo en segundos.</param>
     private void StartTurnTimer(string roomCode, int timeLimitSeconds)
     {
         var cts = new CancellationTokenSource();
@@ -550,6 +583,10 @@ public class GameService : IGameService
         });
     }
 
+    /// <summary>
+    /// Cancela el temporizador del turno actual.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
     private void CancelTurnTimer(string roomCode)
     {
         if (_turnTimers.TryRemove(roomCode, out var cts))
@@ -563,6 +600,10 @@ public class GameService : IGameService
         }
     }
 
+    /// <summary>
+    /// Envía el evento TurnStarted a todos los clientes de la sala.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
     private async Task BroadcastTurnStartedAsync(string roomCode)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -598,6 +639,11 @@ public class GameService : IGameService
         _logger.LogDebug("Broadcast TurnStarted for player {PlayerId} in room {RoomCode}", currentPlayerId, roomCode);
     }
 
+    /// <summary>
+    /// Envía el resultado de un turno a todos los clientes de la sala.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
+    /// <param name="turnResult">Resultado del turno.</param>
     private async Task BroadcastTurnResultAsync(string roomCode, TurnResultDto turnResult)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -606,6 +652,11 @@ public class GameService : IGameService
         _logger.LogDebug("Broadcast TurnResult for player {PlayerId} in room {RoomCode}", turnResult.PlayerId, roomCode);
     }
 
+    /// <summary>
+    /// Envía el evento de timeout de turno a todos los clientes de la sala.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
+    /// <param name="turnResult">Resultado del turno (sin puntos por timeout).</param>
     private async Task BroadcastTurnTimeoutAsync(string roomCode, TurnResultDto turnResult)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -614,6 +665,7 @@ public class GameService : IGameService
         _logger.LogDebug("Broadcast TurnTimeout for player {PlayerId} in room {RoomCode}", turnResult.PlayerId, roomCode);
     }
 
+    /// <inheritdoc cref="IGameService.PauseGameAsync"/>
     public async Task<Result> PauseGameAsync(string roomCode, long userId)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -657,6 +709,7 @@ public class GameService : IGameService
         return Result.Success();
     }
 
+    /// <inheritdoc cref="IGameService.ResumeGameAsync"/>
     public async Task<Result> ResumeGameAsync(string roomCode, long userId)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -698,6 +751,7 @@ public class GameService : IGameService
         return Result.Success();
     }
 
+    /// <inheritdoc cref="IGameService.KickPlayerAsync"/>
     public async Task<Result<string?>> KickPlayerAsync(string roomCode, long ownerId, long playerIdToKick)
     {
         if (!_rooms.TryGetValue(roomCode, out var room))
@@ -752,6 +806,10 @@ public class GameService : IGameService
         return Result.Success<string?>(connectionIdToRemove);
     }
 
+    /// <summary>
+    /// Envía el evento GamePaused a todos los clientes de la sala.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
     private async Task BroadcastGamePausedAsync(string roomCode)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -761,6 +819,11 @@ public class GameService : IGameService
         _logger.LogDebug("Broadcast GamePaused to room {RoomCode}", roomCode);
     }
 
+    /// <summary>
+    /// Envía el evento GameResumed a todos los clientes de la sala.
+    /// </summary>
+    /// <param name="roomCode">Código de la sala.</param>
+    /// <param name="timeRemaining">Tiempo restante para el turno.</param>
     private async Task BroadcastGameResumedAsync(string roomCode, int timeRemaining)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -770,6 +833,7 @@ public class GameService : IGameService
         _logger.LogDebug("Broadcast GameResumed to room {RoomCode} with {TimeRemaining}s", roomCode, timeRemaining);
     }
 
+    /// <inheritdoc cref="IGameService.HandleDisconnectionAsync"/>
     public async Task HandleDisconnectionAsync(string connectionId)
     {
         _logger.LogInformation("Handling disconnection for connection {ConnectionId}", connectionId);
@@ -789,6 +853,7 @@ public class GameService : IGameService
         }
     }
 
+    /// <inheritdoc cref="IGameService.GetRoomCodeByConnectionAsync"/>
     public Task<string?> GetRoomCodeByConnectionAsync(string connectionId)
     {
         if (_connectionToUser.TryGetValue(connectionId, out var userId))
@@ -801,6 +866,10 @@ public class GameService : IGameService
         return Task.FromResult<string?>(null);
     }
 
+    /// <summary>
+    /// Genera un código único de sala de 6 caracteres alfanuméricos.
+    /// </summary>
+    /// <returns>Código de sala único.</returns>
     private string GenerateRoomCode()
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

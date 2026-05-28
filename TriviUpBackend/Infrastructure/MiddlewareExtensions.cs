@@ -1,7 +1,14 @@
 ﻿namespace TriviUpBackend.Infrastructure;
 
+/// <summary>
+/// Extensiones de middleware para el pipeline de la aplicación.
+/// </summary>
 public static class MiddlewareExtensions
 {
+    /// <summary>
+    /// Middleware global de manejo de excepciones.
+    /// Captura cualquier excepción no manejada y devuelve una respuesta JSON con el error.
+    /// </summary>
     public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder app)
     {
         app.Use(async (context, next) =>

@@ -7,6 +7,10 @@ using TriviUpBackend.Repositories.Users;
 
 namespace TriviUpBackend.Services.Auth;
 
+/// <summary>
+/// Implementación del servicio de autenticación.
+/// Gestiona el registro, inicio de sesión y autenticación con Google OAuth.
+/// </summary>
 public class AuthService(
     IUserRepository userRepository,
     IJwtService jwtService,
@@ -16,6 +20,7 @@ public class AuthService(
 {
 
     
+    /// <inheritdoc cref="IAuthService.SignUpAsync"/>
     public async Task<Result<AuthResponseDto, AuthError>> SignUpAsync(RegisterDto dto)
     {
         var sanitizedUsername = dto.Username?.Replace("\n", "").Replace("\r", "");
@@ -61,6 +66,7 @@ public class AuthService(
         }
     }
     
+    /// <inheritdoc cref="IAuthService.SignInAsync"/>
     public async Task<Result<AuthResponseDto, AuthError>> SignInAsync(LoginDto dto)
     {
         var sanitizedUsername = dto.Username?.Replace("\n", "").Replace("\r", "");
@@ -115,6 +121,7 @@ public class AuthService(
         }
     }
 
+    /// <inheritdoc cref="IAuthService.GoogleSignInAsync"/>
     public async Task<Result<AuthResponseDto, AuthError>> GoogleSignInAsync(string googleId, string email, string username)
     {
         logger.LogInformation("Google sign-in attempt for email: {Email}", email);
@@ -167,6 +174,11 @@ public class AuthService(
         }
     }
     
+    /// <summary>
+    /// Verifica que el username y email no estén en uso.
+    /// </summary>
+    /// <param name="dto">Datos de registro a verificar.</param>
+    /// <returns>Éxito si no hay duplicados, error de conflicto en caso contrario.</returns>
     private async Task<UnitResult<AuthError>> CheckDuplicatesAsync(RegisterDto dto)
     {
         var existingUser = await userRepository.FindByUsernameAsync(dto.Username!);
@@ -185,6 +197,11 @@ public class AuthService(
     }
 
     
+    /// <summary>
+    /// Genera la respuesta de autenticación con token JWT y datos del usuario.
+    /// </summary>
+    /// <param name="user">Usuario para el cual generar la respuesta.</param>
+    /// <returns>DTO de respuesta de autenticación.</returns>
     private AuthResponseDto GenerateAuthResponse(User user)
     {
         var token = jwtService.GenerateToken(user);

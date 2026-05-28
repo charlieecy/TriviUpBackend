@@ -7,6 +7,10 @@ using TriviUpBackend.Services.Auth;
 
 namespace TriviUpBackend.Game.Hubs;
 
+/// <summary>
+/// Hub de SignalR para la gestión de partidas en tiempo real.
+/// Permite a los usuarios crear salas, unirse, jugar y competir en quizzes.
+/// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class GameHub : Hub
 {
@@ -14,6 +18,12 @@ public class GameHub : Hub
     private readonly IJwtTokenExtractor _jwtTokenExtractor;
     private readonly ILogger<GameHub> _logger;
 
+    /// <summary>
+    /// Constructor del hub de juego.
+    /// </summary>
+    /// <param name="gameService">Servicio de gestión de partidas.</param>
+    /// <param name="jwtTokenExtractor">Extractor de tokens JWT.</param>
+    /// <param name="logger">Logger para mensajes de diagnóstico.</param>
     public GameHub(
         IGameService gameService,
         IJwtTokenExtractor jwtTokenExtractor,

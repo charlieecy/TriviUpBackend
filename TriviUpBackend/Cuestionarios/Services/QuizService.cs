@@ -7,6 +7,10 @@ using TriviUpBackend.Services.Cache;
 
 namespace TriviUpBackend.Cuestionarios.Services;
 
+/// <summary>
+/// Implementación del servicio de quizzes.
+/// Gestiona la lógica de negocio para crear, consultar y manipular quizzes.
+/// </summary>
 public class QuizService(
     IQuizRepository quizRepository,
     ILogger<QuizService> logger,
@@ -16,6 +20,7 @@ public class QuizService(
     private static readonly Random _random = new();
     private static readonly TimeSpan DefaultCacheDuration = TimeSpan.FromMinutes(5);
 
+    /// <inheritdoc cref="IQuizService.CreateAsync"/>
     public async Task<Result<QuizResponse, QuizError>> CreateAsync(CreateQuizRequest request, long creatorId)
     {
         logger.LogInformation("Creando quiz: {Nombre} por usuario {CreatorId}", request.Nombre, creatorId);
@@ -71,6 +76,7 @@ public class QuizService(
         return Result.Success<QuizResponse, QuizError>(QuizResponse.FromEntity(quizWithQuestions));
     }
 
+    /// <inheritdoc cref="IQuizService.GetByIdAsync"/>
     public async Task<Result<QuizResponse, QuizError>> GetByIdAsync(long id)
     {
         logger.LogInformation("Obteniendo quiz por ID: {Id}", id);
@@ -96,6 +102,7 @@ public class QuizService(
         return Result.Success<QuizResponse, QuizError>(response);
     }
 
+    /// <inheritdoc cref="IQuizService.GetByGameCodeAsync"/>
     public async Task<Result<QuizResponse, QuizError>> GetByGameCodeAsync(string gameCode)
     {
         logger.LogInformation("Obteniendo quiz por GameCode: {GameCode}", gameCode);
@@ -116,6 +123,7 @@ public class QuizService(
         return Result.Success<QuizResponse, QuizError>(QuizResponse.FromEntity(quizWithQuestions));
     }
 
+    /// <inheritdoc cref="IQuizService.GetAllAsync"/>
     public async Task<Result<(List<QuizResponse> Quizzes, int TotalCount), QuizError>> GetAllAsync(int page = 1, int pageSize = 10)
     {
         logger.LogInformation("Obteniendo lista de quizzes - Página: {Page}, Tamaño: {PageSize}", page, pageSize);
@@ -149,6 +157,7 @@ public class QuizService(
         return Result.Success<(List<QuizResponse>, int), QuizError>((quizResponses, totalCount));
     }
 
+    /// <inheritdoc cref="IQuizService.GetByCreatorIdAsync"/>
     public async Task<Result<List<QuizResponse>, QuizError>> GetByCreatorIdAsync(long creatorId)
     {
         logger.LogInformation("Obteniendo quizzes del usuario: {CreatorId}", creatorId);
@@ -159,6 +168,7 @@ public class QuizService(
         return Result.Success<List<QuizResponse>, QuizError>(quizResponses);
     }
 
+    /// <inheritdoc cref="IQuizService.UpdateAsync"/>
     public async Task<Result<QuizResponse, QuizError>> UpdateAsync(long id, UpdateQuizRequest request, long userId)
     {
         logger.LogInformation("Actualizando quiz {Id} por usuario {UserId}", id, userId);
@@ -221,6 +231,7 @@ public class QuizService(
         return Result.Success<QuizResponse, QuizError>(QuizResponse.FromEntity(updatedQuiz));
     }
 
+    /// <inheritdoc cref="IQuizService.DeleteAsync"/>
     public async Task<UnitResult<QuizError>> DeleteAsync(long id, long userId)
     {
         logger.LogInformation("Eliminando quiz {Id} por usuario {UserId}", id, userId);
@@ -247,6 +258,7 @@ public class QuizService(
         return UnitResult.Success<QuizError>();
     }
 
+    /// <inheritdoc cref="IQuizService.GetPublicQuizzesAsync"/>
     public async Task<Result<(List<PublicQuizResponse> Quizzes, int TotalCount), QuizError>> GetPublicQuizzesAsync(string? search, int page, int pageSize)
     {
         logger.LogInformation("[QuizService] Obteniendo quizzes públicos sin cache - Search: {Search}, Page: {Page}, PageSize: {PageSize}",
@@ -264,6 +276,7 @@ public class QuizService(
         return Result.Success<(List<PublicQuizResponse>, int), QuizError>(result);
     }
 
+    /// <inheritdoc cref="IQuizService.IncrementLikesAsync"/>
     public async Task<Result<int, QuizError>> IncrementLikesAsync(long id)
     {
         logger.LogInformation("[QuizService] Incrementando likes del quiz {Id}", id);
@@ -284,6 +297,7 @@ public class QuizService(
         return Result.Success<int, QuizError>(updatedQuiz.Likes);
     }
 
+    /// <inheritdoc cref="IQuizService.DecrementLikesAsync"/>
     public async Task<Result<int, QuizError>> DecrementLikesAsync(long id)
     {
         logger.LogInformation("[QuizService] Decrementando likes del quiz {Id}", id);
@@ -304,6 +318,7 @@ public class QuizService(
         return Result.Success<int, QuizError>(updatedQuiz.Likes);
     }
 
+    /// <inheritdoc cref="IQuizService.IncrementVisitasAsync"/>
     public async Task<Result<int, QuizError>> IncrementVisitasAsync(long id)
     {
         logger.LogInformation("[QuizService] Incrementando visitas del quiz {Id}", id);

@@ -9,6 +9,10 @@ using TriviUpBackend.Services.Cache;
 
 namespace TriviUpBackend.Infrastructure;
 
+/// <summary>
+/// Configuración de inyección de dependencias.
+/// Registra todos los repositorios, servicios y almacenamiento en el contenedor de servicios.
+/// </summary>
 public static class DependencyInjectionConfig
 {
     public static IServiceCollection AddRepositoriesAndServices(this IServiceCollection services, IConfiguration configuration)

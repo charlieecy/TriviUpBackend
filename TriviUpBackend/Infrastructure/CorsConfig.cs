@@ -1,5 +1,9 @@
 ﻿namespace TriviUpBackend.Infrastructure;
 
+/// <summary>
+/// Configuración de CORS (Cross-Origin Resource Sharing).
+/// Define las políticas de acceso desde diferentes orígenes.
+/// </summary>
 public static class CorsConfig
 {
     public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration configuration, bool isDevelopment)

@@ -6,6 +6,10 @@ using TriviUpBackend.Game.DTOs;
 
 namespace TriviUpBackend.Controllers;
 
+/// <summary>
+/// Controlador de administración.
+/// Proporciona endpoints exclusivos para administradores del sistema.
+/// </summary>
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "ADMIN")]
@@ -15,12 +19,22 @@ public class AdminController : ControllerBase
     private readonly Context _context;
     private readonly ILogger<AdminController> _logger;
 
+    /// <summary>
+    /// Constructor del controlador de administración.
+    /// </summary>
+    /// <param name="context">Contexto de la base de datos.</param>
+    /// <param name="logger">Logger para mensajes de diagnóstico.</param>
     public AdminController(Context context, ILogger<AdminController> logger)
     {
         _context = context;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Obtiene estadísticas generales del sistema.
+    /// Incluye total de partidas, quizzes, usuarios, usuarios activos y rankings.
+    /// </summary>
+    /// <returns>Estadísticas del sistema.</returns>
     [HttpGet("stats")]
     public async Task<ActionResult<AdminStatsDto>> GetStats()
     {

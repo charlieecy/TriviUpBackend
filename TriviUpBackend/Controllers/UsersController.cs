@@ -11,6 +11,10 @@ using TriviUpBackend.Services.Auth;
 
 namespace TriviUpBackend.Controllers;
 
+/// <summary>
+/// Controlador de gestión de usuarios.
+/// Proporciona endpoints para administración de usuarios y gestión del perfil propio.
+/// </summary>
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
